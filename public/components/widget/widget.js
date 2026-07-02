@@ -2251,9 +2251,36 @@
     /* neutral dark buttons (mic / speaker / captions) */
     .va-tool-btn { background: rgba(40,42,60,0.9) !important; }
     .va-tool-btn:hover { background: rgba(60,62,84,0.95) !important; }
-    .va-tool-btn svg { width: 18px !important; height: 18px !important; }
+    .va-tool-btn svg {
+      width: 18px !important; height: 18px !important;
+      display: block !important;
+      max-width: none !important; max-height: none !important;
+      fill: none !important;
+      stroke: #fff !important;
+      stroke-width: 2 !important;
+      stroke-linecap: round !important;
+      stroke-linejoin: round !important;
+      overflow: visible !important;
+      vertical-align: middle !important;
+    }
+    /* stroke icons: children must never be filled by host theme rules */
+    .va-tool-btn svg path,
+    .va-tool-btn svg line,
+    .va-tool-btn svg polygon,
+    .va-tool-btn svg polyline,
+    .va-tool-btn svg circle {
+      fill: none !important;
+      stroke: inherit !important;
+      stroke-width: 2 !important;
+    }
     .va-mic-btn.muted {
       background: rgba(239,68,68,0.85) !important;
+    }
+    /* muted mic uses a reddish stroke */
+    .va-mic-btn.muted svg,
+    .va-mic-btn.muted svg path,
+    .va-mic-btn.muted svg line {
+      stroke: #f87171 !important;
     }
     .va-tool-btn.off {           /* generic toggled-off (speaker/captions) */
       background: rgba(239,68,68,0.30) !important;
@@ -2262,7 +2289,19 @@
     .va-btn-divider { width: 1px !important; height: 26px !important; background: rgba(255,255,255,0.16) !important; margin: 0 2px !important; }
     .va-end-btn { background: #e5342b !important; width: 48px !important; height: 48px !important; }
     .va-end-btn:hover { background: #c81e15 !important; }
-    .va-end-btn svg { width: 20px !important; height: 20px !important; fill: white !important; }
+    /* end-call icon is a FILLED glyph, not a stroke icon */
+    .va-end-btn svg {
+      width: 20px !important; height: 20px !important;
+      display: block !important;
+      max-width: none !important; max-height: none !important;
+      overflow: visible !important;
+      vertical-align: middle !important;
+    }
+    .va-end-btn svg,
+    .va-end-btn svg path {
+      fill: #fff !important;
+      stroke: none !important;
+    }
   `;
   document.head.appendChild(style);
 
@@ -2380,7 +2419,7 @@
   function setMicIcon(on) {
     while (micIcon.firstChild) micIcon.removeChild(micIcon.firstChild);
     micIcon.appendChild(buildSvg(on ? MIC_ON : MIC_OFF));
-    micIcon.setAttribute("stroke", on ? "white" : "#f87171");
+    // stroke color is driven by CSS (.va-mic-btn.muted svg) so it survives host themes
   }
 
   // initial paint
