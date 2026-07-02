@@ -276,6 +276,55 @@ export function ConversationView({
   );
   const isSessionActive = state === "avatar_ready";
 
+  // Inside ConversationView, after the existing hooks/state:
+
+  // ── Bridge: parent widget (widget.js) → iframe controls ──────────────
+  useEffect(() => {
+    function handleParentMessage(event: MessageEvent) {
+      const data = event.data;
+      if (!data || !data.type) return;
+
+      switch (data.type) {
+        case "VOICE_AGENT_MIC_TOGGLE": {
+          // Only toggle if the requested state differs from current
+          if (data.enabled !== isMicEnabled) {
+            toggleMic();
+          }
+          break;
+        }
+        case "VOICE_AGENT_SPEAKER_TOGGLE": {
+          document.querySelectorAll("audio").forEach((el) => {
+            (el as HTMLAudioElement).muted = !data.enabled;
+          });
+          break;
+        }
+        case "VOICE_AGENT_DISCONNECT": {
+          disconnect();
+          break;
+        }
+      }
+    }
+
+    window.addEventListener("message", handleParentMessage);
+    return () => window.removeEventListener("message", handleParentMessage);
+  }, [isMicEnabled, toggleMic, disconnect]);
+
+  // ── Report mic state back so the parent's icon stays in sync ──────────
+  useEffect(() => {
+    if (!isSessionActive) return;
+    window.parent.postMessage(
+      { type: "VOICE_AGENT_MIC_STATE", enabled: isMicEnabled },
+      "*",
+    );
+  }, [isMicEnabled, isSessionActive]);
+
+  // ── Tell the parent when the avatar is actually ready ─────────────────
+  useEffect(() => {
+    if (isSessionActive) {
+      window.parent.postMessage({ type: "VOICE_AGENT_READY" }, "*");
+    }
+  }, [isSessionActive]);
+
   const waveformPatterns = [
     ["20%", "60%", "30%", "80%", "20%"],
     ["20%", "80%", "40%", "100%", "20%"],
