@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://140.245.229.78:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://avat.gigatechservices.org";
 
 class ApiClient {
   private defaultBaseUrl: string;

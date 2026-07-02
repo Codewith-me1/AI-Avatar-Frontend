@@ -3602,6 +3602,15 @@ function CreateAgentView({
     { step: 4 as const, icon: <Code size={16} />, label: "Embed Code" },
   ];
 
+  const embedCode = `<!-- VoiceAgent Embeddable Assistant Widget -->
+<script>
+  window.VoiceAgentConfig = {
+    agentId: "${createdAgentId}",
+    apiUrl: "${typeof window !== "undefined" ? window.location.origin : ""}"
+  };
+</script>
+<script src="${typeof window !== "undefined" ? window.location.origin : ""}/components/widget/widget.js" async></script>`;
+
   return (
     <div className="w-full m-2!">
       {/* Top bar */}
@@ -3858,13 +3867,11 @@ function CreateAgentView({
                   </div>
                 </div>
                 <div className="bg-[#1a1a1a] p-5! rounded-2xl mb-6! font-mono text-sm text-green-400 overflow-x-auto">
-                  {`<script src="https://app.digitalemployees.us/qxbox/embed/${createdAgentId}.js"></script>`}
+                  {embedCode}
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(
-                      `<script src="https://app.digitalemployees.us/qxbox/embed/${createdAgentId}.js"></script>`,
-                    );
+                    navigator.clipboard.writeText(embedCode);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}
