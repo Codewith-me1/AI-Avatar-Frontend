@@ -1712,6 +1712,39 @@
   `;
   document.head.appendChild(style);
 
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+function buildSvg(paths) {
+  // paths: array of [tagName, attrs]
+  const frag = document.createDocumentFragment();
+  for (const [tag, attrs] of paths) {
+    const el = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    frag.appendChild(el);
+  }
+  return frag;
+}
+
+const MIC_ON = [
+  ["path", { d: "M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" }],
+  ["path", { d: "M19 10v2a7 7 0 0 1-14 0v-2" }],
+  ["line", { x1: "12", y1: "19", x2: "12", y2: "23" }],
+  ["line", { x1: "8", y1: "23", x2: "16", y2: "23" }],
+];
+const MIC_OFF = [
+  ["line", { x1: "1", y1: "1", x2: "23", y2: "23" }],
+  ["path", { d: "M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" }],
+  ["path", { d: "M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" }],
+  ["line", { x1: "12", y1: "19", x2: "12", y2: "23" }],
+  ["line", { x1: "8", y1: "23", x2: "16", y2: "23" }],
+];
+
+function setMicIcon(on) {
+  while (micIcon.firstChild) micIcon.removeChild(micIcon.firstChild);
+  micIcon.appendChild(buildSvg(on ? MIC_ON : MIC_OFF));
+  micIcon.setAttribute("stroke", on ? "white" : "#f87171");
+}
+
   const container = document.createElement("div");
   container.className = "va-widget-container";
   container.id = "vaWidgetContainer";
@@ -1863,6 +1896,7 @@
     stopCallTimer();
     micEnabled = true;
     micBtn.classList.remove("muted");
+    setMicIcon(true);
     micIcon.innerHTML = MIC_ON_SVG;
     micIcon.setAttribute("stroke", "white");
     speakerOn = true; captionsOn = false;
@@ -1902,18 +1936,16 @@ console.log({
   readyState: v?.readyState,    // 0 = nothing loaded, 4 = playing
   videoWidth: v?.videoWidth,    // 0 = no frames arriving
 });
-
-  function toggleMic() {
-    micEnabled = !micEnabled;
-    if (micEnabled) {
-      micBtn.classList.remove("muted");
-      micIcon.innerHTML = MIC_ON_SVG; micIcon.setAttribute("stroke", "white");
-    } else {
-      micBtn.classList.add("muted");
-      micIcon.innerHTML = MIC_OFF_SVG; micIcon.setAttribute("stroke", "#f87171");
-    }
-    try { iframe.contentWindow.postMessage({ type: "VOICE_AGENT_MIC_TOGGLE", enabled: micEnabled }, "*"); } catch (_) {}
-  }
+function toggleMic() {
+  micEnabled = !micEnabled;
+  micBtn.classList.toggle("muted", !micEnabled);
+  setMicIcon(micEnabled);
+  try {
+    iframe.contentWindow.postMessage(
+      { type: "VOICE_AGENT_MIC_TOGGLE", enabled: micEnabled }, "*"
+    );
+  } catch (_) {}
+}
 
   function toggleSpeaker() {
     speakerOn = !speakerOn;
@@ -1934,18 +1966,27 @@ console.log({
   spkBtn.addEventListener("click", toggleSpeaker);
   capBtn.addEventListener("click", toggleCaptions);
 
-  window.addEventListener("message", (event) => {
-    if (!event.data || !event.data.type) return;
-    switch (event.data.type) {
-      case "VOICE_AGENT_CLOSE":  closeWidget();  break;
-      case "VOICE_AGENT_READY":  revealAgent();  break;
-      case "VOICE_AGENT_MIC_STATE":
-        micEnabled = !!event.data.enabled;
-        micBtn.classList.toggle("muted", !micEnabled);
-        micIcon.innerHTML = micEnabled ? MIC_ON_SVG : MIC_OFF_SVG;
-        micIcon.setAttribute("stroke", micEnabled ? "white" : "#f87171");
-        break;
-    }
-  });
+  // window.addEventListener("message", (event) => {
+  //   if (!event.data || !event.data.type) return;
+  //   switch (event.data.type) {
+  //     case "VOICE_AGENT_CLOSE":  closeWidget();  break;
+  //     case "VOICE_AGENT_READY":  revealAgent();  break;
+  //     case "VOICE_AGENT_MIC_STATE":
+  //       micEnabled = !!event.data.enabled;
+  //       micBtn.classList.toggle("muted", !micEnabled);
+  //       micIcon.innerHTML = micEnabled ? MIC_ON_SVG : MIC_OFF_SVG;
+  //       micIcon.setAttribute("stroke", micEnabled ? "white" : "#f87171");
+  //       break;
+  //   }
+  // });
 
+  window.addEventListener("message", async (e) => {
+  if (e.data?.type === "VOICE_AGENT_MIC_TOGGLE") {
+    await room.localParticipant.setMicrophoneEnabled(e.data.enabled);
+    // report back so parent icon stays in sync
+    window.parent.postMessage(
+      { type: "VOICE_AGENT_MIC_STATE", enabled: e.data.enabled }, "*"
+    );
+  }
+});
 })();
