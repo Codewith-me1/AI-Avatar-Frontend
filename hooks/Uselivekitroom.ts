@@ -431,7 +431,12 @@ export function useLiveKitRoom(): UseLiveKitRoomReturn {
         adaptiveStream: true,
         dynacast: true,
       });
+             // ← ADD THIS
+
       roomRef.current = room;
+
+      (window as any).__lkRoom = roomRef.current; 
+
 
       room.on(RoomEvent.TrackSubscribed, (track: any) => {
         if (track.kind === Track.Kind.Video) {
