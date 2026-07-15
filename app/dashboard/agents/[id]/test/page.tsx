@@ -48,7 +48,7 @@ export default function AgentTestPage({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-3 text-slate-400">
-        <div className="w-10 h-10 border-4 border-[#424874] border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-[#6d28d9] border-t-transparent rounded-full animate-spin" />
         <span className="text-sm font-semibold">
           Initializing voice session sandbox...
         </span>
@@ -66,8 +66,8 @@ export default function AgentTestPage({
           </p>
         </div>
         <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-[#424874] hover:text-[#353b61] text-sm font-semibold"
+          href="/dashboard/agents"
+          className="inline-flex items-center gap-2 text-[#6d28d9] hover:text-[#5b21b6] text-sm font-semibold"
         >
           <ArrowLeft size={16} />
           Return to Console
@@ -83,15 +83,15 @@ export default function AgentTestPage({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold">
             <Link
-              href="/dashboard"
-              className="hover:text-[#424874] transition-colors"
+              href="/dashboard/agents"
+              className="hover:text-[#6d28d9] transition-colors"
             >
               Agents
             </Link>
             <span>/</span>
             <Link
               href={`/dashboard/agents/${agent.id}`}
-              className="hover:text-[#424874] transition-colors"
+              className="hover:text-[#6d28d9] transition-colors"
             >
               {agent.name}
             </Link>
@@ -99,8 +99,8 @@ export default function AgentTestPage({
             <span className="text-slate-600">Sandbox Test</span>
           </div>
 
-          <h1 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#424874] to-slate-800 flex items-center gap-2">
-            <Mic size={18} className="text-[#A6B1E1]" />
+          <h1 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#6d28d9] to-slate-800 flex items-center gap-2">
+            <Mic size={18} className="text-[#a78bfa]" />
             Voice Sandbox: {agent.name}
           </h1>
         </div>
@@ -112,8 +112,8 @@ export default function AgentTestPage({
               Configure Settings
             </button>
           </Link>
-          <div className="flex items-center gap-2 bg-[#DCD6F7]/50 border border-[#A6B1E1]/40 px-3 py-2 rounded-xl text-xs text-[#424874] font-bold shadow-sm">
-            <Server size={12} className="text-[#424874]" />
+          <div className="flex items-center gap-2 bg-[#ede9fe]/50 border border-[#a78bfa]/40 px-3 py-2 rounded-xl text-xs text-[#6d28d9] font-bold shadow-sm">
+            <Server size={12} className="text-[#6d28d9]" />
             RT Pipeline: WebRTC
           </div>
         </div>
@@ -122,8 +122,8 @@ export default function AgentTestPage({
       {/* Main Sandbox Box */}
       <div className="flex-1 glass-panel rounded-3xl overflow-hidden shadow-lg border border-white/60 relative flex flex-col min-h-0">
         {/* Info Tip banner */}
-        <div className="px-6 py-3 bg-[#DCD6F7]/50 border-b border-[#A6B1E1]/40 text-[11px] text-[#424874] flex items-center gap-2 flex-none font-semibold">
-          <Info size={14} className="flex-none text-[#424874]" />
+        <div className="px-6 py-3 bg-[#ede9fe]/50 border-b border-[#a78bfa]/40 text-[11px] text-[#6d28d9] flex items-center gap-2 flex-none font-semibold">
+          <Info size={14} className="flex-none text-[#6d28d9]" />
           <span>
             Click the microphone button to start a WebSocket and WebRTC stream
             with the agent. Make sure your browser has mic permissions enabled.

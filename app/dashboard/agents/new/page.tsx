@@ -99,7 +99,7 @@ export default function NewAgentPage() {
       // Attempt API request
       const response = await apiClient.post<Agent>("/api/agents/", payload);
       addAgent(response);
-      router.push("/dashboard");
+      router.push("/dashboard/agents");
     } catch (err) {
       console.warn(
         "API request failed, performing client-side mock creation",
@@ -111,7 +111,7 @@ export default function NewAgentPage() {
         id: `mock-${crypto.randomUUID()}`,
       };
       addAgent(mockResponse);
-      router.push("/dashboard");
+      router.push("/dashboard/agents");
     } finally {
       setIsSubmitting(false);
     }
@@ -121,8 +121,8 @@ export default function NewAgentPage() {
     <div className="p-8 max-w-4xl mx-auto">
       {/* Back button */}
       <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-[#424874] text-sm font-medium mb-6 transition-colors group"
+        href="/dashboard/agents"
+        className="inline-flex items-center gap-2 text-slate-500 hover:text-[#6d28d9] text-sm font-medium mb-6 transition-colors group"
       >
         <ArrowLeft
           size={16}
@@ -133,11 +133,11 @@ export default function NewAgentPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#DCD6F7] border border-white/80 flex items-center justify-center text-[#424874] shadow-sm">
+        <div className="w-10 h-10 rounded-xl bg-[#ede9fe] border border-white/80 flex items-center justify-center text-[#6d28d9] shadow-sm">
           <Sparkles size={20} />
         </div>
         <div>
-          <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#424874] to-slate-800">
+          <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#6d28d9] to-slate-800">
             New Voice Agent
           </h1>
           <p className="text-slate-500 text-sm">
@@ -158,7 +158,7 @@ export default function NewAgentPage() {
         <FormSection title="Agent Profile" icon={<AlignLeft size={16} />}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 Agent Name
               </label>
               <input
@@ -167,13 +167,13 @@ export default function NewAgentPage() {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="e.g. Sarah Support"
-                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 Description
               </label>
               <input
@@ -182,7 +182,7 @@ export default function NewAgentPage() {
                 value={formData.description}
                 onChange={handleInputChange}
                 placeholder="Short description of the agent's role"
-                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               />
             </div>
           </div>
@@ -192,14 +192,14 @@ export default function NewAgentPage() {
         <FormSection title="AI LLM Config" icon={<Cpu size={16} />}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 LLM Provider
               </label>
               <select
                 name="llm_provider"
                 value={formData.llm_provider}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               >
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
@@ -207,14 +207,14 @@ export default function NewAgentPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 LLM Model
               </label>
               <select
                 name="llm_model"
                 value={formData.llm_model}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               >
                 {formData.llm_provider === "openai" ? (
                   <>
@@ -232,14 +232,14 @@ export default function NewAgentPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 Language
               </label>
               <select
                 name="language"
                 value={formData.language}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               >
                 <option value="en-US">English (United States)</option>
                 <option value="es-ES">Spanish (Spain)</option>
@@ -258,14 +258,14 @@ export default function NewAgentPage() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 Avatar Type
               </label>
               <select
                 name="avatar_type"
                 value={formData.avatar_type}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               >
                 <option value="waveform">Audio Waveform (Default)</option>
                 <option value="readyplayerme">Ready Player Me (3D GLB)</option>
@@ -273,10 +273,10 @@ export default function NewAgentPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
                 Avatar GLB URL
                 {formData.avatar_type === "readyplayerme" && (
-                  <span className="text-[10px] text-[#424874] ml-1.5 lowercase italic font-normal">
+                  <span className="text-[10px] text-[#6d28d9] ml-1.5 lowercase italic font-normal">
                     (.glb models supported)
                   </span>
                 )}
@@ -292,7 +292,7 @@ export default function NewAgentPage() {
                     ? "https://models.readyplayer.me/your-model-id.glb"
                     : "Not applicable for waveforms"
                 }
-                className="w-full px-4 py-3 bg-white/70 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all"
+                className="w-full px-4 py-3 bg-white/70 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
               />
             </div>
           </div>
@@ -301,10 +301,10 @@ export default function NewAgentPage() {
         {/* System Prompt instructions */}
         <div className="glass-panel rounded-2xl p-6 shadow-sm border border-white/60">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-[#424874] uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-[#6d28d9] uppercase tracking-wider">
               Behavior & Prompt Settings
             </h3>
-            <span className="text-xs text-[#424874] font-bold flex items-center gap-1">
+            <span className="text-xs text-[#6d28d9] font-bold flex items-center gap-1">
               <HelpCircle size={14} />
               Quick Templates
             </span>
@@ -317,9 +317,9 @@ export default function NewAgentPage() {
                 key={temp.name}
                 type="button"
                 onClick={() => applyPromptTemplate(temp.prompt)}
-                className="p-3 bg-white/50 hover:bg-[#DCD6F7]/40 hover:border-[#A6B1E1] text-left rounded-xl border border-slate-200/50 transition-all flex flex-col justify-between shadow-sm cursor-pointer"
+                className="p-3 bg-white/50 hover:bg-[#ede9fe]/40 hover:border-[#a78bfa] text-left rounded-xl border border-slate-200/50 transition-all flex flex-col justify-between shadow-sm cursor-pointer"
               >
-                <span className="text-xs font-bold text-[#424874]">
+                <span className="text-xs font-bold text-[#6d28d9]">
                   {temp.name}
                 </span>
                 <span className="text-[10px] text-slate-500 mt-1">
@@ -330,7 +330,7 @@ export default function NewAgentPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">
+            <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
               System Instructions
             </label>
             <textarea
@@ -339,7 +339,7 @@ export default function NewAgentPage() {
               onChange={handleInputChange}
               rows={6}
               placeholder="Tell your bot who they are, how to talk, and what boundaries they have..."
-              className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all resize-none leading-relaxed"
+              className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all resize-none leading-relaxed"
               required
             />
           </div>
@@ -358,7 +358,7 @@ export default function NewAgentPage() {
                   is_active: e.target.checked,
                 }))
               }
-              className="w-4 h-4 rounded text-[#424874] bg-white border-slate-300 focus:ring-[#A6B1E1] focus:ring-offset-2"
+              className="w-4 h-4 rounded text-[#6d28d9] bg-white border-slate-300 focus:ring-[#a78bfa] focus:ring-offset-2"
             />
             <div>
               <p className="text-sm font-bold text-slate-800">Active Status</p>
@@ -371,7 +371,7 @@ export default function NewAgentPage() {
 
         {/* Action buttons */}
         <div className="flex items-center justify-end gap-3 pt-4">
-          <Link href="/dashboard">
+          <Link href="/dashboard/agents">
             <button
               type="button"
               className="px-6 py-3 bg-white/60 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-800 rounded-xl text-sm font-semibold transition-all cursor-pointer"
@@ -384,7 +384,7 @@ export default function NewAgentPage() {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={isSubmitting}
-            className="px-8 py-3 bg-[#424874] hover:bg-[#353b61] text-white rounded-xl text-sm font-bold shadow-md shadow-[#424874]/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="px-8 py-3 bg-[#6d28d9] hover:bg-[#5b21b6] text-white rounded-xl text-sm font-bold shadow-md shadow-[#6d28d9]/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? "Creating agent..." : "Create Agent"}
           </motion.button>
@@ -406,8 +406,8 @@ function FormSection({
   return (
     <div className="glass-panel rounded-2xl p-6 space-y-4 shadow-sm border border-white/60">
       <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-        <span className="text-[#A6B1E1]">{icon}</span>
-        <h2 className="text-sm font-bold uppercase tracking-wider text-[#424874]">
+        <span className="text-[#a78bfa]">{icon}</span>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">
           {title}
         </h2>
       </div>

@@ -250,7 +250,7 @@ function Navbar() {
           ))}
         </div>
         <div className="nav-right">
-          <a href="#" className="nav-icon-btn outline" aria-label="Sign in">
+          <a href="/login" className="nav-icon-btn outline" aria-label="Sign in">
             <LogIn size={18} />
           </a>
           <a

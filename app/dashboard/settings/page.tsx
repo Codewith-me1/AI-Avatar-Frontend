@@ -96,11 +96,11 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#DCD6F7] border border-white/80 flex items-center justify-center text-[#424874] shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-[#ede9fe] border border-white/80 flex items-center justify-center text-[#6d28d9] shadow-sm">
             <Settings size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#424874] to-slate-800">
+            <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#6d28d9] to-slate-800">
               Platform Settings
             </h1>
             <p className="text-slate-500 text-sm">Configure system-wide connections, service API keys, and endpoints</p>
@@ -132,18 +132,18 @@ export default function SettingsPage() {
         {/* API keys section */}
         <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
           <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Key size={16} className="text-[#A6B1E1]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#424874]">LLM Provider Keys</h2>
+            <Key size={16} className="text-[#a78bfa]" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">LLM Provider Keys</h2>
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-            Optional: Paste your keys below. Keys are stored locally inside your browser's <code className="text-[#424874] font-bold">localStorage</code> and passed dynamically per session.
+            Optional: Paste your keys below. Keys are stored locally inside your browser's <code className="text-[#6d28d9] font-bold">localStorage</code> and passed dynamically per session.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* OpenAI API Key */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">OpenAI Key</label>
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">OpenAI Key</label>
               <div className="relative">
                 <input
                   type={showKeys.openai ? "text" : "password"}
@@ -151,12 +151,12 @@ export default function SettingsPage() {
                   value={keys.openai}
                   onChange={handleInputChange}
                   placeholder="sk-proj-..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => toggleKeyVisibility("openai")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#424874] transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
                 >
                   {showKeys.openai ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -165,7 +165,7 @@ export default function SettingsPage() {
 
             {/* Anthropic API Key */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">Anthropic Key</label>
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Anthropic Key</label>
               <div className="relative">
                 <input
                   type={showKeys.anthropic ? "text" : "password"}
@@ -173,12 +173,12 @@ export default function SettingsPage() {
                   value={keys.anthropic}
                   onChange={handleInputChange}
                   placeholder="sk-ant-..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => toggleKeyVisibility("anthropic")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#424874] transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
                 >
                   {showKeys.anthropic ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -190,14 +190,14 @@ export default function SettingsPage() {
         {/* Voice and Video Credentials */}
         <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
           <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Volume2 size={16} className="text-[#A6B1E1]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#424874]">Voice & Avatar Integration</h2>
+            <Volume2 size={16} className="text-[#a78bfa]" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">Voice & Avatar Integration</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Cartesia Key */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">Cartesia API Key</label>
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Cartesia API Key</label>
               <div className="relative">
                 <input
                   type={showKeys.cartesia ? "text" : "password"}
@@ -205,12 +205,12 @@ export default function SettingsPage() {
                   value={keys.cartesia}
                   onChange={handleInputChange}
                   placeholder="sk_car_..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => toggleKeyVisibility("cartesia")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#424874] transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
                 >
                   {showKeys.cartesia ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -219,7 +219,7 @@ export default function SettingsPage() {
 
             {/* LiveAvatar / HeyGen Key */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">HeyGen / LiveAvatar API Key</label>
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">HeyGen / LiveAvatar API Key</label>
               <div className="relative">
                 <input
                   type={showKeys.liveavatar ? "text" : "password"}
@@ -227,12 +227,12 @@ export default function SettingsPage() {
                   value={keys.liveavatar}
                   onChange={handleInputChange}
                   placeholder="HeyGen API Key..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => toggleKeyVisibility("liveavatar")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#424874] transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
                 >
                   {showKeys.liveavatar ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -244,38 +244,38 @@ export default function SettingsPage() {
         {/* LiveKit Cloud/Server Credentials */}
         <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
           <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Video size={16} className="text-[#A6B1E1]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#424874]">LiveKit Server (Realtime)</h2>
+            <Video size={16} className="text-[#a78bfa]" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">LiveKit Server (Realtime)</h2>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">LiveKit URL</label>
+              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit URL</label>
               <input
                 type="text"
                 name="livekitUrl"
                 value={keys.livekitUrl}
                 onChange={handleInputChange}
                 placeholder="wss://your-project.livekit.cloud"
-                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">LiveKit API Key</label>
+                <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit API Key</label>
                 <input
                   type="text"
                   name="livekitKey"
                   value={keys.livekitKey}
                   onChange={handleInputChange}
                   placeholder="API..."
-                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">LiveKit API Secret</label>
+                <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit API Secret</label>
                 <div className="relative">
                   <input
                     type={showKeys.livekitSecret ? "text" : "password"}
@@ -283,12 +283,12 @@ export default function SettingsPage() {
                     value={keys.livekitSecret}
                     onChange={handleInputChange}
                     placeholder="Secret..."
-                    className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+                    className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => toggleKeyVisibility("livekitSecret")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#424874] transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
                   >
                     {showKeys.livekitSecret ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -301,19 +301,19 @@ export default function SettingsPage() {
         {/* Server environment */}
         <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
           <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Shield size={16} className="text-[#A6B1E1]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#424874]">System API Endpoint</h2>
+            <Shield size={16} className="text-[#a78bfa]" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">System API Endpoint</h2>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-[#424874] uppercase tracking-wider block">Server URL</label>
+            <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Server URL</label>
             <input
               type="text"
               name="serverUrl"
               value={keys.serverUrl}
               onChange={handleInputChange}
               placeholder="http://localhost:8000"
-              className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#A6B1E1] focus:ring-2 focus:ring-[#DCD6F7] transition-all font-mono"
+              className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
               required
             />
           </div>
@@ -325,7 +325,7 @@ export default function SettingsPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="flex items-center gap-2 px-8 py-3 bg-[#424874] hover:bg-[#353b61] text-white rounded-xl text-sm font-bold shadow-md shadow-[#424874]/15 border border-white/20 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-8 py-3 bg-[#6d28d9] hover:bg-[#5b21b6] text-white rounded-xl text-sm font-bold shadow-md shadow-[#6d28d9]/15 border border-white/20 transition-all cursor-pointer"
           >
             <Save size={16} />
             Save Settings

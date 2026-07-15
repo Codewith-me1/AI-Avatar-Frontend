@@ -1,11 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ────────────────────────────────────────────────────────────
+   UNIFIED DESIGN SYSTEM  —  "AVAT Avatar"
+   One brand across landing + dashboard.
+   Primary: violet → coral. Body: Inter. Display: Space Grotesk.
+──────────────────────────────────────────────────────────────*/
 :root {
-  --background: #f4f6fc;
-  --foreground: #323249;
-  --accent-lavender: #DCD6F7;
-  --accent-lavender-dark: #A6B1E1;
-  --accent-indigo: #424874;
+  /* Fonts */
+  --font-display: 'Space Grotesk', var(--font-geist-sans), system-ui, sans-serif;
+  --font-body: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+
+  /* Brand */
+  --violet: #7c3aed;
+  --violet-600: #7c3aed;
+  --violet-700: #6d28d9;
+  --violet-050: #f5f3ff;
+  --violet-100: #ede9fe;
+  --coral: #fb7185;
+  --orange: #f97316;
+  --grad: linear-gradient(100deg, #7c3aed 0%, #9333ea 40%, #fb7185 82%, #f97316 100%);
+  --grad-soft: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(251, 113, 133, 0.1));
+
+  /* Neutrals */
+  --background: #f6f6fb;
+  --paper: #ffffff;
+  --ink: #16121f;          /* headings */
+  --foreground: #3b3650;   /* body text */
+  --slate: #4b4661;
+  --muted: #8b8699;
+  --line: #ececf1;
+  --line-soft: #f2f0f6;
+
+  /* Radii & elevation */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(22, 18, 31, 0.05), 0 1px 3px rgba(22, 18, 31, 0.04);
+  --shadow-md: 0 10px 30px rgba(22, 18, 31, 0.07);
+  --shadow-lg: 0 24px 60px rgba(124, 58, 237, 0.14);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t: 0.25s var(--ease);
+
+  /* Legacy tokens still referenced in a few places — kept for safety */
+  --accent-lavender: #ede9fe;
+  --accent-lavender-dark: #a78bfa;
+  --accent-indigo: #6d28d9;
 }
 
 * {
@@ -14,34 +57,80 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(220, 214, 247, 0.4) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(166, 177, 225, 0.25) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(244, 238, 255, 0.5) 0px, transparent 50%);
-  background-attachment: fixed;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+::selection {
+  background: rgba(124, 58, 237, 0.18);
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(66, 72, 116, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(66, 72, 116, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.22); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124, 58, 237, 0.4); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Glassmorphism helpers */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+/* ── Reusable helpers ─────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+.grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
+/* Card surface used across the dashboard */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Restyle legacy glass-panel to a clean brand card so old pages look modern */
+.glass-panel,
 .glass-panel-heavy {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Section eyebrow label */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--violet-700);
+  background: var(--violet-050);
+  border: 1px solid var(--violet-100);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--r-full);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
