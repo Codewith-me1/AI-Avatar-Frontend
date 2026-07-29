@@ -498,9 +498,291 @@
 //   );
 // }
 
+// "use client";
+
+// import { useEffect, useRef, useState } from "react";
+// import { motion, AnimatePresence } from "framer-motion";
+// import {
+//   Mic,
+//   MicOff,
+//   PhoneOff,
+//   Settings2,
+//   Minimize2,
+//   RefreshCw,
+// } from "lucide-react";
+// import { LiveAvatarRoom } from "./Liveavatarroom";
+// import { useLiveKitRoom } from "@/hooks/Uselivekitroom";
+// import { DEFAULT_AVATAR, AVATAR_OPTIONS } from "./Avatars";
+// import type { Agent } from "@/types";
+
+// interface ConversationViewProps {
+//   agent: Agent & { avatar_id?: string };
+//   roomName?: string;
+//   userIdentity?: string;
+// }
+
+// export function ConversationView({
+//   agent,
+//   roomName,
+//   userIdentity,
+// }: ConversationViewProps) {
+//   const {
+//     videoRef,
+//     state,
+//     connect,
+//     disconnect,
+//     isMicEnabled,
+//     toggleMic,
+//     error,
+//     hasVideo,
+//     isAgentSpeaking,
+//   } = useLiveKitRoom();
+
+//   const initialAvatar =
+//     AVATAR_OPTIONS.find((a) => a.id === agent.avatar_id) ?? DEFAULT_AVATAR;
+//   const [selectedAvatar] = useState(initialAvatar);
+//   const connectionAttempted = useRef(false);
+//   const [sessionTime, setSessionTime] = useState(0);
+
+//   // ── Connection Logic ──────────────────────────────────────────────
+//   useEffect(() => {
+//     if (!connectionAttempted.current) {
+//       connectionAttempted.current = true;
+//       connect(agent.id, roomName, userIdentity).catch((err) =>
+//         console.error("Automated session token acquisition failed:", err),
+//       );
+//     }
+//     return () => {
+//       disconnect();
+//     };
+//   }, [agent.id, roomName, userIdentity, connect, disconnect]);
+
+//   // Session Timer
+//   useEffect(() => {
+//     let interval: NodeJS.Timeout;
+//     if (state === "avatar_ready") {
+//       interval = setInterval(() => {
+//         setSessionTime((prev) => prev + 1);
+//       }, 1000);
+//     } else {
+//       setSessionTime(0);
+//     }
+//     return () => clearInterval(interval);
+//   }, [state]);
+
+//   const formatTime = (seconds: number) => {
+//     const m = Math.floor(seconds / 60);
+//     const s = seconds % 60;
+//     return `${m}:${s.toString().padStart(2, "0")}`;
+//   };
+
+//   const handleCloseWidget = () => {
+//     disconnect();
+//     if (window.parent) {
+//       window.parent.postMessage({ type: "VOICE_AGENT_CLOSE" }, "*");
+//     }
+//   };
+
+//   const isConnecting = ["connecting", "connected", "agent_joining"].includes(
+//     state,
+//   );
+//   const isSessionActive = state === "avatar_ready";
+
+//   const waveformPatterns = [
+//     ["20%", "60%", "30%", "80%", "20%"],
+//     ["20%", "80%", "40%", "100%", "20%"],
+//     ["20%", "50%", "90%", "40%", "20%"],
+//     ["20%", "100%", "50%", "80%", "20%"],
+//     ["20%", "70%", "30%", "60%", "20%"],
+//   ];
+
+//   return (
+//     <div className="relative w-full h-full bg-[#050505] text-white overflow-hidden rounded-2xl border-2 border-[#1A1A2E] shadow-2xl">
+//       {/* ── Main Avatar Video Layer ─────────────────────────────────────────── */}
+//       <div className="absolute inset-0 w-full h-full z-0">
+//         <LiveAvatarRoom
+//           videoRef={videoRef}
+//           state={state}
+//           avatar={selectedAvatar}
+//           agentName={agent.name}
+//           error={error}
+//         />
+
+//         {/* Fallback Waveform if Video isn't ready or hasn't started playing */}
+//         {(!hasVideo || !isSessionActive) && (
+//           <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
+//             <motion.div
+//               animate={{
+//                 scale: isAgentSpeaking ? [1, 1.15, 1] : 1,
+//                 opacity: isAgentSpeaking ? 0.25 : 0.05,
+//               }}
+//               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+//               className="absolute w-72 h-72 bg-indigo-500/30 blur-3xl rounded-full pointer-events-none"
+//             />
+//             <div className="flex items-center gap-2 h-20 z-10">
+//               {[0, 1, 2, 3, 4].map((i) => (
+//                 <motion.div
+//                   key={i}
+//                   animate={{
+//                     height: isAgentSpeaking ? waveformPatterns[i] : "12%",
+//                   }}
+//                   transition={{
+//                     duration: 0.5 + i * 0.08,
+//                     repeat: Infinity,
+//                     ease: "easeInOut",
+//                   }}
+//                   className={`w-3 rounded-full transition-colors duration-300 ${
+//                     isAgentSpeaking
+//                       ? "bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+//                       : "bg-white/20"
+//                   }`}
+//                 />
+//               ))}
+//             </div>
+//           </div>
+//         )}
+//       </div>
+
+//       {/* ── Top HUD Bar ────────────────────────────────────────────────────── */}
+//       <div className="absolute top-0 left-0 right-0 p-4 flex justify-end gap-3 z-20 pointer-events-none">
+//         <AnimatePresence>
+//           {isSessionActive && (
+//             <>
+//               <motion.div
+//                 initial={{ opacity: 0, y: -10 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 exit={{ opacity: 0 }}
+//                 className="pointer-events-auto flex items-center justify-center px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-md border border-white/10"
+//               >
+//                 <div className="flex items-end gap-[2px] h-3.5">
+//                   <div className="w-[3px] h-[40%] bg-green-500 rounded-sm"></div>
+//                   <div className="w-[3px] h-[70%] bg-green-500 rounded-sm"></div>
+//                   <div className="w-[3px] h-[100%] bg-green-500 rounded-sm"></div>
+//                 </div>
+//               </motion.div>
+//               <motion.div
+//                 initial={{ opacity: 0, y: -10 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 exit={{ opacity: 0 }}
+//                 className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-xs font-semibold"
+//               >
+//                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+//                 {formatTime(sessionTime)}
+//               </motion.div>
+//             </>
+//           )}
+//         </AnimatePresence>
+
+//         <button
+//           onClick={handleCloseWidget}
+//           className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+//         >
+//           <Minimize2 size={16} />
+//         </button>
+//       </div>
+
+//       {/* ── Loading / Connecting Overlay ───────────────────────────────────── */}
+//       <AnimatePresence>
+//         {isConnecting && (
+//           <motion.div
+//             initial={{ opacity: 0 }}
+//             animate={{ opacity: 1 }}
+//             exit={{ opacity: 0 }}
+//             className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#050505]/80 backdrop-blur-sm"
+//           >
+//             <div className="flex items-center gap-3">
+//               <RefreshCw size={24} className="animate-spin text-cyan-400" />
+//               <span className="text-white/80 font-medium">
+//                 {state === "agent_joining"
+//                   ? "Agent entering room..."
+//                   : "Establishing pipeline..."}
+//               </span>
+//             </div>
+//           </motion.div>
+//         )}
+//       </AnimatePresence>
+
+//       {/* ── Bottom Control Dock ────────────────────────────────────────────── */}
+//       <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20 pointer-events-none">
+//         {/* Autoplay Fallback Button */}
+//         {hasVideo && state === "avatar_ready" && (
+//           <button
+//             className="pointer-events-auto px-6 py-3 rounded-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium shadow-xl opacity-0 hover:opacity-100 transition-opacity duration-300 absolute -top-16"
+//             onClick={() => videoRef.current?.play()}
+//             title="If video is frozen, click here to force play."
+//           >
+//             Start Video
+//           </button>
+//         )}
+
+//         {/* Disconnect/Error Reconnect State */}
+//         {["idle", "disconnected", "error"].includes(state) && (
+//           <motion.button
+//             initial={{ opacity: 0, scale: 0.9 }}
+//             animate={{ opacity: 1, scale: 1 }}
+//             className="pointer-events-auto px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-700 font-medium text-sm shadow-xl flex items-center gap-2 transition-colors"
+//             onClick={() => connect(agent.id, roomName, userIdentity)}
+//           >
+//             Reconnect Call
+//           </motion.button>
+//         )}
+
+//         {/* Active Session Dock */}
+//         <AnimatePresence>
+//           {isSessionActive && (
+//             <motion.div
+//               initial={{ opacity: 0, y: 20 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               exit={{ opacity: 0, y: 20 }}
+//               className="pointer-events-auto flex items-center gap-3 px-3 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
+//             >
+//               <button
+//                 onClick={toggleMic}
+//                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+//                   isMicEnabled
+//                     ? "bg-white/10 text-white hover:bg-white/20"
+//                     : "bg-white/5 text-white/50 hover:bg-white/10"
+//                 }`}
+//               >
+//                 {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+//               </button>
+
+//               <button className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all">
+//                 <Settings2 size={20} />
+//               </button>
+
+//               <button className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all">
+//                 <svg
+//                   width="20"
+//                   height="20"
+//                   viewBox="0 0 24 24"
+//                   fill="none"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                 >
+//                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+//                 </svg>
+//               </button>
+
+//               <div className="w-px h-8 bg-white/10 mx-1" />
+
+//               <button
+//                 onClick={handleCloseWidget}
+//                 className="w-12 h-12 rounded-full flex items-center justify-center bg-[#E11D48] hover:bg-red-700 text-white transition-all shadow-[0_0_15px_rgba(225,29,72,0.4)]"
+//               >
+//                 <PhoneOff size={20} />
+//               </button>
+//             </motion.div>
+//           )}
+//         </AnimatePresence>
+//       </div>
+//     </div>
+//   );
+// }
+
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mic,
@@ -519,13 +801,22 @@ interface ConversationViewProps {
   agent: Agent & { avatar_id?: string };
   roomName?: string;
   userIdentity?: string;
+  /**
+   * true  → this component renders its own mic / chat / end-call dock
+   *         (used by the Launch Sandbox page, which has no parent widget).
+   * false → the PARENT widget (voice-agent-embed.js) renders the controls
+   *         and drives this component over postMessage. Default.
+   */
+  showInternalControls?: boolean;
 }
 
 export function ConversationView({
   agent,
   roomName,
   userIdentity,
+  showInternalControls = false,
 }: ConversationViewProps) {
+  const _lk: any = useLiveKitRoom();
   const {
     videoRef,
     state,
@@ -536,7 +827,9 @@ export function ConversationView({
     error,
     hasVideo,
     isAgentSpeaking,
-  } = useLiveKitRoom();
+  } = _lk;
+  // `room` if the hook exposes it (optional — window.__lkRoom is the fallback)
+  const room = _lk.room;
 
   const initialAvatar =
     AVATAR_OPTIONS.find((a) => a.id === agent.avatar_id) ?? DEFAULT_AVATAR;
@@ -544,11 +837,80 @@ export function ConversationView({
   const connectionAttempted = useRef(false);
   const [sessionTime, setSessionTime] = useState(0);
 
+  // ── Room access with fallback ────────────────────────────────────────
+  const getRoom = useCallback((): any => {
+    return (
+      (room as any) ??
+      (typeof window !== "undefined" ? (window as any).__lkRoom : undefined)
+    );
+  }, [room]);
+
+  interface _ChatMsg {
+    id: string;
+    from: "user" | "agent";
+    text: string;
+    final: boolean;
+  }
+  const [messages, setMessages] = useState<_ChatMsg[]>([]);
+
+  // Upsert a transcript segment.
+  const upsertMessage = useCallback(
+    (id: string, from: "user" | "agent", text: string, final: boolean) => {
+      setMessages((prev) => {
+        const i = prev.findIndex((m) => m.id === id);
+        if (i === -1) return [...prev, { id, from, text, final }];
+        const next = [...prev];
+        next[i] = { ...next[i], text, final };
+        return next;
+      });
+      // Relay to the PARENT widget (embed mode). Harmless in sandbox mode.
+      try {
+        window.parent.postMessage(
+          { type: "VOICE_AGENT_TRANSCRIPT", id, from, text, final },
+          "*",
+        );
+      } catch {}
+    },
+    [],
+  );
+
+  // ── Shared control handlers (used by both internal dock and parent bridge) ──
+  const handleDisconnect = useCallback(() => {
+    disconnect();
+    // Notify parent so the embed can reset to its banner state.
+    try {
+      window.parent.postMessage({ type: "VOICE_AGENT_CLOSE" }, "*");
+    } catch {}
+  }, [disconnect]);
+
+  const handleSendText = useCallback(
+    (raw: string) => {
+      const t = (raw || "").trim();
+      if (!t) return;
+      const lkRoom = getRoom();
+      console.log("[chat] SEND_TEXT", { text: t, hasRoom: !!lkRoom });
+      if (lkRoom?.localParticipant?.sendText) {
+        lkRoom.localParticipant
+          .sendText(t, { topic: "lk.chat" })
+          .then(() => console.log("[chat] sendText OK"))
+          .catch((e: any) => console.error("[chat] sendText failed", e));
+      } else {
+        console.error(
+          "[chat] cannot send: " +
+            (!lkRoom
+              ? "room unavailable (set window.__lkRoom in the hook)"
+              : "localParticipant.sendText missing — upgrade livekit-client to >=2.13"),
+        );
+      }
+    },
+    [getRoom],
+  );
+
   // ── Connection Logic ──────────────────────────────────────────────
   useEffect(() => {
     if (!connectionAttempted.current) {
       connectionAttempted.current = true;
-      connect(agent.id, roomName, userIdentity).catch((err) =>
+      connect(agent.id, roomName, userIdentity).catch((err: any) =>
         console.error("Automated session token acquisition failed:", err),
       );
     }
@@ -576,17 +938,150 @@ export function ConversationView({
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleCloseWidget = () => {
-    disconnect();
-    if (window.parent) {
-      window.parent.postMessage({ type: "VOICE_AGENT_CLOSE" }, "*");
-    }
-  };
-
   const isConnecting = ["connecting", "connected", "agent_joining"].includes(
     state,
   );
   const isSessionActive = state === "avatar_ready";
+
+  // ── Transcription listener: agent + user speech → chat messages ────
+  const transcriptPath = useRef<null | "stream" | "legacy">(null);
+
+  useEffect(() => {
+    const lkRoom = getRoom();
+    if (!lkRoom) {
+      console.warn(
+        "[chat] room not available yet (state=" +
+          state +
+          ") — expose `room` from useLiveKitRoom OR set window.__lkRoom = room inside the hook's connect()",
+      );
+      return;
+    }
+    console.log(
+      "[chat] registering transcript listeners (state=" + state + ")",
+    );
+
+    // Path A: text streams
+    const streamHandler = async (reader: any, participantInfo: any) => {
+      try {
+        const attrs: Record<string, string> = reader.info?.attributes ?? {};
+        console.log("[chat] text stream received", { attrs, participantInfo });
+        const segId =
+          attrs["lk.segment_id"] || `${Date.now()}-${Math.random()}`;
+        const transcribedTrack = attrs["lk.transcribed_track_id"];
+        let isUser = false;
+        if (transcribedTrack && lkRoom.localParticipant) {
+          const pubs = Array.from(
+            lkRoom.localParticipant.trackPublications?.values?.() ?? [],
+          ) as any[];
+          isUser = pubs.some((p) => p?.trackSid === transcribedTrack);
+        }
+        const final = attrs["lk.transcription_final"] === "true";
+        const text = await reader.readAll();
+        if (text && text.trim()) {
+          if (transcriptPath.current === null)
+            transcriptPath.current = "stream";
+          if (transcriptPath.current !== "stream") return;
+          upsertMessage(segId, isUser ? "user" : "agent", text, final);
+        }
+      } catch (e) {
+        console.warn("[chat] transcription stream error", e);
+      }
+    };
+    try {
+      lkRoom.registerTextStreamHandler("lk.transcription", streamHandler);
+    } catch (e) {
+      console.warn("[chat] text stream handler unavailable:", e);
+    }
+
+    // Path B: legacy transcription events
+    const onTranscription = (segments: any[], participant: any) => {
+      console.log("[chat] TranscriptionReceived", { segments, participant });
+      if (transcriptPath.current === "stream") return;
+      if (transcriptPath.current === null) transcriptPath.current = "legacy";
+      const localIdentity = lkRoom.localParticipant?.identity;
+      for (const seg of segments ?? []) {
+        const isUser = participant?.identity === localIdentity;
+        if (seg?.text && seg.text.trim()) {
+          upsertMessage(
+            seg.id || `${Date.now()}-${Math.random()}`,
+            isUser ? "user" : "agent",
+            seg.text,
+            !!seg.final,
+          );
+        }
+      }
+    };
+    try {
+      lkRoom.on("transcriptionReceived", onTranscription);
+    } catch (e) {
+      console.warn("[chat] legacy transcription event unavailable:", e);
+    }
+
+    return () => {
+      try {
+        lkRoom.unregisterTextStreamHandler?.("lk.transcription");
+      } catch {}
+      try {
+        lkRoom.off?.("transcriptionReceived", onTranscription);
+      } catch {}
+    };
+  }, [getRoom, upsertMessage, state]);
+
+  // ── Bridge: parent widget (embed mode) → iframe controls ──────────────
+  // Skip entirely in sandbox mode — the internal dock drives things directly.
+  useEffect(() => {
+    if (showInternalControls) return;
+
+    function handleParentMessage(event: MessageEvent) {
+      const data = event.data;
+      if (!data || !data.type) return;
+
+      switch (data.type) {
+        case "VOICE_AGENT_MIC_TOGGLE": {
+          if (data.enabled !== isMicEnabled) toggleMic();
+          break;
+        }
+        case "VOICE_AGENT_SPEAKER_TOGGLE": {
+          document.querySelectorAll("audio").forEach((el) => {
+            (el as HTMLAudioElement).muted = !data.enabled;
+          });
+          break;
+        }
+        case "VOICE_AGENT_SEND_TEXT": {
+          handleSendText(data.text);
+          break;
+        }
+        case "VOICE_AGENT_DISCONNECT": {
+          disconnect();
+          break;
+        }
+      }
+    }
+
+    window.addEventListener("message", handleParentMessage);
+    return () => window.removeEventListener("message", handleParentMessage);
+  }, [
+    showInternalControls,
+    isMicEnabled,
+    toggleMic,
+    disconnect,
+    handleSendText,
+  ]);
+
+  // ── Report mic state back so the parent's icon stays in sync ──────────
+  useEffect(() => {
+    if (showInternalControls || !isSessionActive) return;
+    window.parent.postMessage(
+      { type: "VOICE_AGENT_MIC_STATE", enabled: isMicEnabled },
+      "*",
+    );
+  }, [showInternalControls, isMicEnabled, isSessionActive]);
+
+  // ── Tell the parent when the avatar is actually ready ─────────────────
+  useEffect(() => {
+    if (showInternalControls || !isSessionActive) return;
+    window.parent.postMessage({ type: "VOICE_AGENT_READY" }, "*");
+  }, [showInternalControls, isSessionActive]);
 
   const waveformPatterns = [
     ["20%", "60%", "30%", "80%", "20%"],
@@ -608,7 +1103,6 @@ export function ConversationView({
           error={error}
         />
 
-        {/* Fallback Waveform if Video isn't ready or hasn't started playing */}
         {(!hasVideo || !isSessionActive) && (
           <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
             <motion.div
@@ -673,12 +1167,15 @@ export function ConversationView({
           )}
         </AnimatePresence>
 
-        <button
-          onClick={handleCloseWidget}
-          className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          <Minimize2 size={16} />
-        </button>
+        {/* Minimize only meaningful in embed mode */}
+        {!showInternalControls && (
+          <button
+            onClick={handleDisconnect}
+            className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <Minimize2 size={16} />
+          </button>
+        )}
       </div>
 
       {/* ── Loading / Connecting Overlay ───────────────────────────────────── */}
@@ -704,7 +1201,6 @@ export function ConversationView({
 
       {/* ── Bottom Control Dock ────────────────────────────────────────────── */}
       <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-20 pointer-events-none">
-        {/* Autoplay Fallback Button */}
         {hasVideo && state === "avatar_ready" && (
           <button
             className="pointer-events-auto px-6 py-3 rounded-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium shadow-xl opacity-0 hover:opacity-100 transition-opacity duration-300 absolute -top-16"
@@ -715,7 +1211,6 @@ export function ConversationView({
           </button>
         )}
 
-        {/* Disconnect/Error Reconnect State */}
         {["idle", "disconnected", "error"].includes(state) && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
@@ -727,54 +1222,69 @@ export function ConversationView({
           </motion.button>
         )}
 
-        {/* Active Session Dock */}
-        <AnimatePresence>
-          {isSessionActive && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="pointer-events-auto flex items-center gap-3 px-3 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
-            >
-              <button
-                onClick={toggleMic}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                  isMicEnabled
-                    ? "bg-white/10 text-white hover:bg-white/20"
-                    : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
+        {/* Internal dock — sandbox mode only. In embed mode the PARENT
+            widget renders mic / speaker / chat / end-call instead. */}
+        {showInternalControls && (
+          <AnimatePresence>
+            {isSessionActive && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="pointer-events-auto flex items-center gap-3 px-3 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
               >
-                {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-              </button>
-
-              <button className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all">
-                <Settings2 size={20} />
-              </button>
-
-              <button className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+                <button
+                  onClick={toggleMic}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                    isMicEnabled
+                      ? "bg-white/10 text-white hover:bg-white/20"
+                      : "bg-white/5 text-white/50 hover:bg-white/10"
+                  }`}
+                  title={isMicEnabled ? "Mute mic" : "Unmute mic"}
                 >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </button>
+                  {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+                </button>
 
-              <div className="w-px h-8 bg-white/10 mx-1" />
+                <button
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all"
+                  title="Settings"
+                >
+                  <Settings2 size={20} />
+                </button>
 
-              <button
-                onClick={handleCloseWidget}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#E11D48] hover:bg-red-700 text-white transition-all shadow-[0_0_15px_rgba(225,29,72,0.4)]"
-              >
-                <PhoneOff size={20} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <button
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-all"
+                  title="Send a message"
+                  onClick={() => {
+                    const text = window.prompt("Send a message to the agent:");
+                    if (text) handleSendText(text);
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </button>
+
+                <div className="w-px h-8 bg-white/10 mx-1" />
+
+                <button
+                  onClick={handleDisconnect}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-[#E11D48] hover:bg-red-700 text-white transition-all shadow-[0_0_15px_rgba(225,29,72,0.4)]"
+                  title="End call"
+                >
+                  <PhoneOff size={20} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
     </div>
   );

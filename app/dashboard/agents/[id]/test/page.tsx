@@ -132,7 +132,7 @@ export default function AgentTestPage({
 
         {/* Conversation Box */}
         <div className="flex-1 min-h-0">
-          <ConversationView agent={agent} />
+          <ConversationView showInternalControls agent={agent} />
         </div>
       </div>
     </div>

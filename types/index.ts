@@ -119,6 +119,30 @@ export interface VoiceState {
   agentVolume: number;   // agent audio level 0-1
 }
 
+// Auth types
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  is_active?: boolean;
+  is_superuser?: boolean;
+  created_at?: string;
+  last_login_at?: string | null;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type?: string;
+  expires_in?: number; // seconds until access token expiry
+  user: AuthUser;
+}
+
+export interface RegisterInput {
+  email: string;
+  password: string;
+  full_name?: string;
+}
+
 // API response types
 export interface ApiError {
   detail: string;

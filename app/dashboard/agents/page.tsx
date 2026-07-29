@@ -3178,19 +3178,18 @@ const MUSETALK_AVATARS = [
     description: "Default demo avatar",
     preview_url: "/avatars/Yongen.png",
   },
-
   {
-    id: "ava2",
-    name: "Ava (High Quality)",
+    id: "maya",
+    name: "Maya",
     description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
+    preview_url: "/avatars/maya.png",
   },
 
   {
-    id: "ava3",
-    name: "Ava (Mid Quality)",
+    id: "mayamid",
+    name: "Maya (Mid Quality)",
     description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
+    preview_url: "/avatars/maya.png",
   },
 
   {
@@ -3198,6 +3197,27 @@ const MUSETALK_AVATARS = [
     name: "Ava (Low Quality)",
     description: "Default demo avatar",
     preview_url: "/avatars/Ava.png",
+  },
+
+  {
+    id: "sidhart",
+    name: "Sidharth",
+    description: "An Indian male avatar with a friendly demeanor",
+    preview_url: "/avatars/sidharth.png",
+  },
+
+  {
+    id: "sidhartmid",
+    name: "Sidharth (Sidharth Mid Quality)",
+    description: "An Indian male avatar with a friendly demeanor",
+    preview_url: "/avatars/sidharth.png",
+  },
+
+  {
+    id: "theo",
+    name: "Theo",
+    description: "A friendly corporate support representative from Oceania",
+    preview_url: "/avatars/theo.png",
   },
 ];
 

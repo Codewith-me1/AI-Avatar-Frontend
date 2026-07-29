@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import {
   Sparkles,
   Mail,
   Lock,
+  User,
   Eye,
   EyeOff,
   ArrowRight,
@@ -16,43 +17,77 @@ import {
   Zap,
   Info,
 } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
-// Dummy credentials — replace with real auth later.
-const DEMO_EMAIL = "admin@avat.ai";
-const DEMO_PASSWORD = "avat1234";
+type Mode = "login" | "register";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, register, status } = useAuth();
+
+  const [mode, setMode] = useState<Mode>("login");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // If already signed in, don't show the form.
+  useEffect(() => {
+    if (status === "authenticated") router.replace("/dashboard");
+  }, [status, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
 
-    // Simulate a network round-trip.
-    setTimeout(() => {
-      if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        try {
-          localStorage.setItem("avat_auth", "true");
-          localStorage.setItem("avat_user", email.trim().toLowerCase());
-        } catch {}
-        router.push("/dashboard");
+    if (!email.trim() || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    if (mode === "register" && password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        await login(email.trim(), password);
       } else {
-        setError("Invalid credentials. Use the demo login below.");
-        setLoading(false);
+        await register({
+          email: email.trim(),
+          password,
+          full_name: fullName.trim() || undefined,
+        });
       }
-    }, 600);
+      router.replace("/dashboard");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      // Never echo raw server internals; keep messages user-safe.
+      if (mode === "login") {
+        setError(
+          /invalid|401|unauthor|credential/i.test(msg)
+            ? "Invalid email or password."
+            : "Couldn't sign in. Please try again.",
+        );
+      } else {
+        setError(
+          /exist|409|conflict|registered/i.test(msg)
+            ? "An account with this email already exists."
+            : "Couldn't create your account. Please try again.",
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const fillDemo = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
+  const switchMode = (m: Mode) => {
+    setMode(m);
     setError(null);
+    setPassword("");
   };
 
   return (
@@ -130,16 +165,40 @@ export default function LoginPage() {
           </Link>
 
           <span className="eyebrow mb-4!">
-            <Lock size={11} /> Sign in
+            <Lock size={11} /> {mode === "login" ? "Sign in" : "Create account"}
           </span>
           <h2 className="text-[26px] font-semibold text-[var(--ink)] tracking-tight mt-3! mb-1.5!">
-            Welcome back
+            {mode === "login" ? "Welcome back" : "Get started"}
           </h2>
           <p className="text-[14px] text-[var(--slate)] mb-7!">
-            Sign in to your workspace to manage your avatars.
+            {mode === "login"
+              ? "Sign in to your workspace to manage your avatars."
+              : "Create your workspace — it only takes a minute."}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4!">
+          <form onSubmit={handleSubmit} className="space-y-4!" noValidate>
+            {mode === "register" && (
+              <div>
+                <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+                  Full name
+                </label>
+                <div className="relative">
+                  <User
+                    size={16}
+                    className="absolute left-3.5! top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                  />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Jane Doe"
+                    autoComplete="name"
+                    className="w-full! pl-10! pr-4! py-3! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
                 Email
@@ -165,12 +224,14 @@ export default function LoginPage() {
                 <label className="text-[13px] font-medium text-[var(--slate)]">
                   Password
                 </label>
-                <button
-                  type="button"
-                  className="text-[12px] font-medium text-[var(--violet-700)] hover:underline"
-                >
-                  Forgot?
-                </button>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    className="text-[12px] font-medium text-[var(--violet-700)] hover:underline"
+                  >
+                    Forgot?
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Lock
@@ -181,13 +242,14 @@ export default function LoginPage() {
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
+                  placeholder={mode === "register" ? "At least 8 characters" : "••••••••"}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                   className="w-full! pl-10! pr-11! py-3! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
                   className="absolute right-3! top-1/2 -translate-y-1/2 p-1! text-[var(--muted)] hover:text-[var(--violet-700)] transition-colors"
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -212,44 +274,35 @@ export default function LoginPage() {
                 <span className="w-4! h-4! border-2 border-white/40 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Sign in <ArrowRight size={16} />
+                  {mode === "login" ? "Sign in" : "Create account"}
+                  <ArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo credentials helper */}
-          <div className="mt-5! bg-[var(--violet-050)] border border-[var(--violet-100)] rounded-xl p-4!">
-            <div className="flex items-center justify-between mb-2!">
-              <span className="text-[12px] font-semibold text-[var(--violet-700)] flex items-center gap-1.5!">
-                <Sparkles size={12} /> Demo credentials
-              </span>
-              <button
-                onClick={fillDemo}
-                className="text-[12px] font-semibold text-white px-2.5! py-1! rounded-lg"
-                style={{ background: "var(--grad)" }}
-              >
-                Auto-fill
-              </button>
-            </div>
-            <div className="text-[12.5px] text-[var(--slate)] font-mono space-y-0.5!">
-              <div>
-                Email: <span className="text-[var(--ink)]">{DEMO_EMAIL}</span>
-              </div>
-              <div>
-                Password: <span className="text-[var(--ink)]">{DEMO_PASSWORD}</span>
-              </div>
-            </div>
-          </div>
-
           <p className="text-[13px] text-[var(--slate)] text-center mt-6!">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/dashboard"
-              className="font-semibold text-[var(--violet-700)] hover:underline"
-            >
-              Start free trial
-            </Link>
+            {mode === "login" ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <button
+                  onClick={() => switchMode("register")}
+                  className="font-semibold text-[var(--violet-700)] hover:underline"
+                >
+                  Create one
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button
+                  onClick={() => switchMode("login")}
+                  className="font-semibold text-[var(--violet-700)] hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
           </p>
         </motion.div>
       </div>

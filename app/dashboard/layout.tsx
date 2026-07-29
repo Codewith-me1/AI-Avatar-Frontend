@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthProvider";
 import {
   LayoutDashboard,
   Users,
@@ -43,30 +44,23 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [authed, setAuthed] = useState<boolean | null>(null);
-  const [userEmail, setUserEmail] = useState<string>("");
+  const { user, status, logout } = useAuth();
 
-  // Dummy client-side auth gate.
+  // Client-side guard (UX only — real protection is the backend requiring a
+  // valid Bearer token on every request). Redirect once we know there's no
+  // session.
   useEffect(() => {
-    const ok = typeof window !== "undefined" && localStorage.getItem("avat_auth") === "true";
-    if (!ok) {
-      router.replace("/login");
-      return;
-    }
-    setUserEmail(localStorage.getItem("avat_user") || "admin@avat.ai");
-    setAuthed(true);
-  }, [router]);
+    if (status === "unauthenticated") router.replace("/login");
+  }, [status, router]);
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem("avat_auth");
-      localStorage.removeItem("avat_user");
-    } catch {}
-    router.replace("/login");
+    void logout();
   };
 
-  // Block render until auth is confirmed to avoid a flash of protected content.
-  if (!authed) {
+  // Block render until the session is confirmed to avoid a flash of protected
+  // content (and to keep child pages from firing API calls before we have a
+  // token).
+  if (status !== "authenticated") {
     return (
       <div className="min-h-screen w-full! grid place-items-center bg-[var(--background)]">
         <div className="flex flex-col items-center gap-3!">
@@ -77,7 +71,9 @@ export default function DashboardLayout({
     );
   }
 
-  const initial = (userEmail[0] || "A").toUpperCase();
+  const userEmail = user?.email || "";
+  const displayName = user?.full_name || userEmail || "Account";
+  const initial = (displayName[0] || "A").toUpperCase();
 
   return (
     <div className="min-h-screen flex bg-[var(--background)] text-[var(--foreground)]">
