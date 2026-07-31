@@ -2783,13 +2783,13 @@
       flex: 1; background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 10px; padding: 9px 12px;
-      color: #fff; font-size: 12.5px; outline: none;
+      color: white; font-size: 12.5px; outline: none;
       font-family: inherit;
     }
     .va-chat-input::placeholder { color: rgba(255,255,255,0.30); }
     .va-chat-input:focus { border-color: rgba(129,140,248,0.7); }
     .va-chat-send {
-      background: #4f46e5; border: none; color: #fff;
+      background: #4f46e5; border: none; color: white;
       width: 36px; height: 36px; border-radius: 10px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.2s; flex-shrink: 0;
@@ -2806,7 +2806,7 @@
       opacity: 0; pointer-events: none;
       transition: opacity 0.4s ease, right 0.3s cubic-bezier(0.16,1,0.3,1);
     }
-    .va-expanded-card.chat-open .va-bottom-bar { right: ${CHAT_W}px; }
+    .va-expanded-card.chat-open .va-bottom-bar { right: 0; }
     .va-bottom-bar.visible { opacity: 1; pointer-events: auto; }
     .va-controls-dock {
       background: rgba(20,22,40,0.55);
