@@ -2572,8 +2572,44 @@
   const INK = "#1b1a4e";
   const CHAT_W = 270; // chat panel width px
 
+  // Force every widget declaration to win over host-page CSS by appending
+  // !important to each one. (Values never contain ';' so this is safe.)
+  const important = (css) =>
+    css
+      .replace(/:\s*([^;{}]+?)\s*;/g, (_m, v) => `: ${v} !important;`)
+      .replace(/:\s*([^;{}]+?)\s*}/g, (_m, v) => `: ${v} !important; }`);
+
+  // Neutralize host global resets + inherited typography that would otherwise
+  // leak into the widget. :where() keeps this at ZERO specificity so the
+  // widget's own rules always outrank it.
+  const RESET_CSS = `
+    :where(#vaWidgetContainer), :where(#vaWidgetContainer *),
+    :where(#vaWidgetContainer *)::before, :where(#vaWidgetContainer *)::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: normal;
+      letter-spacing: normal;
+      text-transform: none;
+      text-align: left;
+      text-decoration: none;
+      text-shadow: none;
+      list-style: none;
+      vertical-align: baseline;
+      box-shadow: none;
+      outline: none;
+      -webkit-font-smoothing: antialiased;
+    }
+  `;
+
   const style = document.createElement("style");
-  style.textContent = `
+  const WIDGET_CSS = `
     .va-widget-container {
       position: fixed;
       bottom: 24px;
@@ -2697,7 +2733,7 @@
     .va-timer-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; animation: va-rec 1.4s infinite ease-in-out; }
     @keyframes va-rec { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-    .va-card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    .va-card-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 0; }
 
     .va-powered {
       position: absolute; right: 12px; bottom: 10px; z-index: 31;
@@ -2835,6 +2871,8 @@
     .va-end-btn:hover { background: #c81e15; }
     .va-end-btn svg { width: 20px; height: 20px; fill: white; }
   `;
+  // Reset first (low priority), then the widget rules — all forced !important.
+  style.textContent = important(RESET_CSS + WIDGET_CSS);
   document.head.appendChild(style);
 
   const container = document.createElement("div");
@@ -3036,8 +3074,8 @@
   setupIdleVideo(loadingVideo);
 
   function revealAgent() {
-    loadingHud.style.opacity = "0";
-    setTimeout(() => { loadingHud.style.display = "none"; }, 500);
+    loadingHud.style.setProperty("opacity", "0", "important");
+    setTimeout(() => { loadingHud.style.setProperty("display", "none", "important"); }, 500);
     bottomBar.classList.add("visible");
     statusPill.classList.add("visible");
     poweredMark.classList.add("visible");
@@ -3059,8 +3097,8 @@
   `;
 
   function resetLoadingHud() {
-    loadingHud.style.display = "flex";
-    loadingHud.style.opacity = "1";
+    loadingHud.style.setProperty("display", "flex", "important");
+    loadingHud.style.setProperty("opacity", "1", "important");
     bottomBar.classList.remove("visible");
     statusPill.classList.remove("visible");
     poweredMark.classList.remove("visible");
