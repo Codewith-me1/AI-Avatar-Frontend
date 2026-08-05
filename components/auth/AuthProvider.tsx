@@ -20,6 +20,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -141,8 +142,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace("/login");
   }, [clearTimer, router]);
 
+  // Merge a local patch into the current user (e.g. after editing the profile
+  // in Settings) so the UI reflects it immediately for the session.
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((u) => (u ? { ...u, ...patch } : u));
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, status, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, status, login, register, logout, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

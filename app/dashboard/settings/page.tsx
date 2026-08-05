@@ -1,337 +1,605 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Settings, Shield, Key, Eye, EyeOff, Save, Check, Volume2, Video, RefreshCw } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import {
+  User,
+  Mail,
+  Building2,
+  Phone,
+  Globe,
+  CreditCard,
+  Save,
+  Check,
+  Bell,
+  ShieldCheck,
+  LogOut,
+  Trash2,
+  Lock,
+  Pencil,
+} from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 
-export default function SettingsPage() {
-  const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({
-    openai: false,
-    anthropic: false,
-    cartesia: false,
-    liveavatar: false,
-    livekitSecret: false,
+const inp =
+  "w-full! px-4! py-2.5! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all";
+
+const TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Berlin",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
+
+function cardBrand(num: string): string {
+  const n = num.replace(/\D/g, "");
+  if (/^4/.test(n)) return "Visa";
+  if (/^(5[1-5]|2[2-7])/.test(n)) return "Mastercard";
+  if (/^3[47]/.test(n)) return "Amex";
+  if (/^6(011|5)/.test(n)) return "Discover";
+  return "Card";
+}
+function formatCard(v: string): string {
+  return v
+    .replace(/\D/g, "")
+    .slice(0, 16)
+    .replace(/(.{4})/g, "$1 ")
+    .trim();
+}
+
+export default function AccountSettingsPage() {
+  const { user, logout, updateUser } = useAuth();
+
+  const [profile, setProfile] = useState({
+    full_name: "",
+    company: "",
+    phone: "",
+    timezone: "UTC",
   });
-
-  const [keys, setKeys] = useState({
-    openai: "",
-    anthropic: "",
-    cartesia: "",
-    liveavatar: "",
-    livekitUrl: "",
-    livekitKey: "",
-    livekitSecret: "",
-    serverUrl: "http://localhost:8000",
+  const [billing, setBilling] = useState({
+    plan: "Free",
+    billing_email: "",
+    card_name: "",
+    card_brand: "",
+    card_last4: "",
+    card_exp: "",
   });
+  const [prefs, setPrefs] = useState({
+    product_news: true,
+    usage_alerts: true,
+    security_alerts: true,
+  });
+  const [cardForm, setCardForm] = useState({ number: "", name: "", exp: "", cvc: "" });
+  const [editingCard, setEditingCard] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
 
-  const [saved, setSaved] = useState(false);
+  const flash = (m: string) => {
+    setSaved(m);
+    setTimeout(() => setSaved(null), 3000);
+  };
 
-  // Load from localStorage in useEffect to avoid Next.js SSR hydration mismatches
+  // Load persisted account details (fall back to the signed-in user).
   useEffect(() => {
-    setKeys({
-      openai: localStorage.getItem("voice_agent_openai_key") || "",
-      anthropic: localStorage.getItem("voice_agent_anthropic_key") || "",
-      cartesia: localStorage.getItem("voice_agent_cartesia_key") || "",
-      liveavatar: localStorage.getItem("voice_agent_liveavatar_key") || "",
-      livekitUrl: localStorage.getItem("voice_agent_livekit_url") || "",
-      livekitKey: localStorage.getItem("voice_agent_livekit_key") || "",
-      livekitSecret: localStorage.getItem("voice_agent_livekit_secret") || "",
-      serverUrl: localStorage.getItem("voice_agent_server_url") || "http://localhost:8000",
-    });
+    try {
+      const p = JSON.parse(localStorage.getItem("avat_profile") || "{}");
+      setProfile({
+        full_name: p.full_name ?? (user?.full_name || ""),
+        company: p.company || "",
+        phone: p.phone || "",
+        timezone: p.timezone || "UTC",
+      });
+      const b = JSON.parse(localStorage.getItem("avat_billing") || "{}");
+      setBilling({
+        plan: b.plan || "Free",
+        billing_email: b.billing_email ?? (user?.email || ""),
+        card_name: b.card_name || "",
+        card_brand: b.card_brand || "",
+        card_last4: b.card_last4 || "",
+        card_exp: b.card_exp || "",
+      });
+      const pr = JSON.parse(localStorage.getItem("avat_prefs") || "{}");
+      setPrefs({
+        product_news: pr.product_news ?? true,
+        usage_alerts: pr.usage_alerts ?? true,
+        security_alerts: pr.security_alerts ?? true,
+      });
+    } catch {
+      /* first run */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggleKeyVisibility = (provider: string) => {
-    setShowKeys((prev) => ({ ...prev, [provider]: !prev[provider] }));
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setKeys((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = (e: React.FormEvent) => {
+  const saveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("voice_agent_openai_key", keys.openai);
-    localStorage.setItem("voice_agent_anthropic_key", keys.anthropic);
-    localStorage.setItem("voice_agent_cartesia_key", keys.cartesia);
-    localStorage.setItem("voice_agent_liveavatar_key", keys.liveavatar);
-    localStorage.setItem("voice_agent_livekit_url", keys.livekitUrl);
-    localStorage.setItem("voice_agent_livekit_key", keys.livekitKey);
-    localStorage.setItem("voice_agent_livekit_secret", keys.livekitSecret);
-    localStorage.setItem("voice_agent_server_url", keys.serverUrl);
-
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    localStorage.setItem("avat_profile", JSON.stringify(profile));
+    updateUser({ full_name: profile.full_name });
+    flash("Profile saved");
   };
 
-  const resetToDefaults = () => {
-    if (confirm("Are you sure you want to reset all settings to defaults?")) {
-      const defaultState = {
-        openai: "",
-        anthropic: "",
-        cartesia: "",
-        liveavatar: "",
-        livekitUrl: "",
-        livekitKey: "",
-        livekitSecret: "",
-        serverUrl: "http://localhost:8000",
-      };
-      setKeys(defaultState);
-      localStorage.setItem("voice_agent_openai_key", "");
-      localStorage.setItem("voice_agent_anthropic_key", "");
-      localStorage.setItem("voice_agent_cartesia_key", "");
-      localStorage.setItem("voice_agent_liveavatar_key", "");
-      localStorage.setItem("voice_agent_livekit_url", "");
-      localStorage.setItem("voice_agent_livekit_key", "");
-      localStorage.setItem("voice_agent_livekit_secret", "");
-      localStorage.setItem("voice_agent_server_url", "http://localhost:8000");
+  const saveBilling = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem("avat_billing", JSON.stringify(billing));
+    flash("Billing details saved");
+  };
 
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+  const saveCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    const digits = cardForm.number.replace(/\D/g, "");
+    if (digits.length < 13) return flash("Enter a valid card number");
+    // Never persist the full PAN or CVC — store only display metadata.
+    const next = {
+      ...billing,
+      card_brand: cardBrand(digits),
+      card_last4: digits.slice(-4),
+      card_exp: cardForm.exp,
+      card_name: cardForm.name,
+    };
+    setBilling(next);
+    localStorage.setItem("avat_billing", JSON.stringify(next));
+    setCardForm({ number: "", name: "", exp: "", cvc: "" });
+    setEditingCard(false);
+    flash("Payment method updated");
+  };
+
+  const togglePref = (k: keyof typeof prefs) => {
+    const next = { ...prefs, [k]: !prefs[k] };
+    setPrefs(next);
+    localStorage.setItem("avat_prefs", JSON.stringify(next));
+    flash("Preferences updated");
+  };
+
+  const deleteAccount = () => {
+    if (
+      confirm(
+        "Delete your account? This removes your local workspace data on this device.",
+      )
+    ) {
+      localStorage.removeItem("avat_profile");
+      localStorage.removeItem("avat_billing");
+      localStorage.removeItem("avat_prefs");
+      void logout();
     }
   };
 
+  const initial = (profile.full_name || user?.email || "A")[0].toUpperCase();
+
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#ede9fe] border border-white/80 flex items-center justify-center text-[#6d28d9] shadow-sm">
-            <Settings size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#6d28d9] to-slate-800">
-              Platform Settings
-            </h1>
-            <p className="text-slate-500 text-sm">Configure system-wide connections, service API keys, and endpoints</p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={resetToDefaults}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-100 rounded-xl transition-all cursor-pointer"
-        >
-          <RefreshCw size={12} />
-          Reset Defaults
-        </button>
-      </div>
-
-      {saved && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-sm font-semibold flex items-center gap-2 shadow-sm"
-        >
-          <Check size={16} />
-          Settings saved to local registry successfully!
-        </motion.div>
-      )}
-
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* API keys section */}
-        <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
-          <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Key size={16} className="text-[#a78bfa]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">LLM Provider Keys</h2>
-          </div>
-
-          <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-            Optional: Paste your keys below. Keys are stored locally inside your browser's <code className="text-[#6d28d9] font-bold">localStorage</code> and passed dynamically per session.
+    <div className="min-h-full text-[var(--foreground)] p-8! md:p-12!">
+      <div className="max-w-[860px] mx-auto!">
+        {/* Header */}
+        <div className="mb-8!">
+          <span className="eyebrow mb-3!">
+            <User size={11} /> Account
+          </span>
+          <h1 className="text-[28px] font-semibold text-[var(--ink)] tracking-tight mt-3!">
+            Settings
+          </h1>
+          <p className="text-sm text-[var(--slate)] mt-1.5!">
+            Manage your profile, payment details, and preferences.
           </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* OpenAI API Key */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">OpenAI Key</label>
-              <div className="relative">
-                <input
-                  type={showKeys.openai ? "text" : "password"}
-                  name="openai"
-                  value={keys.openai}
-                  onChange={handleInputChange}
-                  placeholder="sk-proj-..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => toggleKeyVisibility("openai")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
-                >
-                  {showKeys.openai ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Anthropic API Key */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Anthropic Key</label>
-              <div className="relative">
-                <input
-                  type={showKeys.anthropic ? "text" : "password"}
-                  name="anthropic"
-                  value={keys.anthropic}
-                  onChange={handleInputChange}
-                  placeholder="sk-ant-..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => toggleKeyVisibility("anthropic")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
-                >
-                  {showKeys.anthropic ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Voice and Video Credentials */}
-        <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
-          <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Volume2 size={16} className="text-[#a78bfa]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">Voice & Avatar Integration</h2>
-          </div>
+        {saved && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2! text-[13px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-4! py-3! mb-6!"
+          >
+            <Check size={15} /> {saved}
+          </motion.div>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cartesia Key */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Cartesia API Key</label>
-              <div className="relative">
+        {/* ── Profile ── */}
+        <Section
+          icon={<User size={16} />}
+          title="Profile"
+          desc="Your name and how we can reach you."
+        >
+          <form onSubmit={saveProfile}>
+            <div className="flex items-center gap-4! mb-6!">
+              <div
+                className="w-16! h-16! rounded-2xl grid place-items-center text-white text-xl font-semibold shrink-0"
+                style={{ background: "var(--grad)" }}
+              >
+                {initial}
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-[var(--ink)]">
+                  {profile.full_name || "Your name"}
+                </p>
+                <p className="text-[13px] text-[var(--muted)]">{user?.email}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+              <FieldRow label="Full name" icon={<User size={15} />}>
                 <input
-                  type={showKeys.cartesia ? "text" : "password"}
-                  name="cartesia"
-                  value={keys.cartesia}
-                  onChange={handleInputChange}
-                  placeholder="sk_car_..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
+                  className={`${inp} pl-10!`}
+                  value={profile.full_name}
+                  onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                  placeholder="Jane Doe"
                 />
-                <button
-                  type="button"
-                  onClick={() => toggleKeyVisibility("cartesia")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
+              </FieldRow>
+              <FieldRow label="Email" icon={<Mail size={15} />}>
+                <input
+                  className={`${inp} pl-10! bg-[var(--line-soft)]! text-[var(--muted)] cursor-not-allowed`}
+                  value={user?.email || ""}
+                  readOnly
+                  title="Email can't be changed here"
+                />
+              </FieldRow>
+              <FieldRow label="Company" icon={<Building2 size={15} />}>
+                <input
+                  className={`${inp} pl-10!`}
+                  value={profile.company}
+                  onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                  placeholder="Acme Inc."
+                />
+              </FieldRow>
+              <FieldRow label="Phone" icon={<Phone size={15} />}>
+                <input
+                  className={`${inp} pl-10!`}
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  placeholder="+1 555 000 1234"
+                />
+              </FieldRow>
+              <FieldRow label="Timezone" icon={<Globe size={15} />}>
+                <select
+                  className={`${inp} pl-10! appearance-none`}
+                  value={profile.timezone}
+                  onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
                 >
-                  {showKeys.cartesia ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+                  {TIMEZONES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </FieldRow>
             </div>
 
-            {/* LiveAvatar / HeyGen Key */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">HeyGen / LiveAvatar API Key</label>
-              <div className="relative">
-                <input
-                  type={showKeys.liveavatar ? "text" : "password"}
-                  name="liveavatar"
-                  value={keys.liveavatar}
-                  onChange={handleInputChange}
-                  placeholder="HeyGen API Key..."
-                  className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => toggleKeyVisibility("liveavatar")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
-                >
-                  {showKeys.liveavatar ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+            <div className="flex justify-end mt-6!">
+              <SaveButton>Save profile</SaveButton>
             </div>
+          </form>
+        </Section>
+
+        {/* ── Payment ── */}
+        <Section
+          icon={<CreditCard size={16} />}
+          title="Payment details"
+          desc="Your plan and payment method for credits."
+        >
+          {/* Current plan row */}
+          <div className="flex flex-wrap items-center justify-between gap-3! p-4! rounded-xl border border-[var(--line)] bg-[var(--violet-050)] mb-5!">
+            <div>
+              <p className="text-[13px] text-[var(--slate)]">Current plan</p>
+              <p className="text-[16px] font-semibold text-[var(--ink)]">
+                {billing.plan}
+              </p>
+            </div>
+            <a
+              href="/dashboard/credits"
+              className="text-[13px] font-semibold text-white px-4! py-2! rounded-lg"
+              style={{ background: "var(--grad)" }}
+            >
+              Manage credits
+            </a>
           </div>
-        </div>
 
-        {/* LiveKit Cloud/Server Credentials */}
-        <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
-          <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Video size={16} className="text-[#a78bfa]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">LiveKit Server (Realtime)</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit URL</label>
-              <input
-                type="text"
-                name="livekitUrl"
-                value={keys.livekitUrl}
-                onChange={handleInputChange}
-                placeholder="wss://your-project.livekit.cloud"
-                className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit API Key</label>
-                <input
-                  type="text"
-                  name="livekitKey"
-                  value={keys.livekitKey}
-                  onChange={handleInputChange}
-                  placeholder="API..."
-                  className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">LiveKit API Secret</label>
-                <div className="relative">
-                  <input
-                    type={showKeys.livekitSecret ? "text" : "password"}
-                    name="livekitSecret"
-                    value={keys.livekitSecret}
-                    onChange={handleInputChange}
-                    placeholder="Secret..."
-                    className="w-full pl-4 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => toggleKeyVisibility("livekitSecret")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-[#6d28d9] transition-colors cursor-pointer"
-                  >
-                    {showKeys.livekitSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+          {/* Saved card OR card form */}
+          {billing.card_last4 && !editingCard ? (
+            <div className="flex flex-wrap items-center justify-between gap-3! p-4! rounded-xl border border-[var(--line)] mb-5!">
+              <div className="flex items-center gap-3!">
+                <span className="w-11! h-8! rounded-md grid place-items-center bg-[var(--ink)] text-white text-[11px] font-semibold">
+                  {billing.card_brand || "Card"}
+                </span>
+                <div>
+                  <p className="text-[14px] font-medium text-[var(--ink)] tabular-nums">
+                    •••• •••• •••• {billing.card_last4}
+                  </p>
+                  <p className="text-[12px] text-[var(--muted)]">
+                    {billing.card_name}
+                    {billing.card_exp ? ` · exp ${billing.card_exp}` : ""}
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={() => setEditingCard(true)}
+                className="inline-flex items-center gap-1.5! text-[13px] font-semibold text-[var(--violet-700)] border border-[var(--violet-100)] bg-[var(--violet-050)] hover:bg-[var(--violet-100)] px-3.5! py-2! rounded-lg transition-colors"
+              >
+                <Pencil size={13} /> Update
+              </button>
             </div>
-          </div>
-        </div>
+          ) : (
+            <form onSubmit={saveCard} className="mb-5!">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+                <div className="sm:col-span-2">
+                  <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+                    Card number
+                  </label>
+                  <div className="relative">
+                    <CreditCard
+                      size={15}
+                      className="absolute left-3.5! top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                    />
+                    <input
+                      className={`${inp} pl-10! tabular-nums`}
+                      value={cardForm.number}
+                      onChange={(e) =>
+                        setCardForm({ ...cardForm, number: formatCard(e.target.value) })
+                      }
+                      placeholder="4242 4242 4242 4242"
+                      inputMode="numeric"
+                      autoComplete="cc-number"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+                    Name on card
+                  </label>
+                  <input
+                    className={inp}
+                    value={cardForm.name}
+                    onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
+                    placeholder="Jane Doe"
+                    autoComplete="cc-name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+                    Expiry (MM/YY)
+                  </label>
+                  <input
+                    className={`${inp} tabular-nums`}
+                    value={cardForm.exp}
+                    onChange={(e) =>
+                      setCardForm({
+                        ...cardForm,
+                        exp: e.target.value
+                          .replace(/[^\d/]/g, "")
+                          .slice(0, 5),
+                      })
+                    }
+                    placeholder="08/28"
+                    autoComplete="cc-exp"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+                    CVC
+                  </label>
+                  <input
+                    className={`${inp} tabular-nums`}
+                    value={cardForm.cvc}
+                    onChange={(e) =>
+                      setCardForm({
+                        ...cardForm,
+                        cvc: e.target.value.replace(/\D/g, "").slice(0, 4),
+                      })
+                    }
+                    placeholder="123"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3! justify-end mt-5!">
+                {billing.card_last4 && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingCard(false)}
+                    className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2.5! rounded-xl border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <SaveButton>Save card</SaveButton>
+              </div>
+            </form>
+          )}
 
-        {/* Server environment */}
-        <div className="glass-panel rounded-2xl p-6 space-y-6 shadow-sm border border-white/60">
-          <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-            <Shield size={16} className="text-[#a78bfa]" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">System API Endpoint</h2>
-          </div>
+          <form onSubmit={saveBilling}>
+            <FieldRow label="Billing email" icon={<Mail size={15} />}>
+              <input
+                className={`${inp} pl-10!`}
+                value={billing.billing_email}
+                onChange={(e) =>
+                  setBilling({ ...billing, billing_email: e.target.value })
+                }
+                placeholder="billing@acme.com"
+              />
+            </FieldRow>
+            <div className="flex justify-end mt-5!">
+              <SaveButton>Save billing</SaveButton>
+            </div>
+          </form>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">Server URL</label>
-            <input
-              type="text"
-              name="serverUrl"
-              value={keys.serverUrl}
-              onChange={handleInputChange}
-              placeholder="http://localhost:8000"
-              className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all font-mono"
-              required
+          <p className="flex items-center gap-1.5! text-[12px] text-[var(--muted)] mt-4!">
+            <ShieldCheck size={13} /> Card details are stored only as the last 4
+            digits on this device — no full card number or CVC is kept.
+          </p>
+        </Section>
+
+        {/* ── Notifications ── */}
+        <Section
+          icon={<Bell size={16} />}
+          title="Notifications"
+          desc="Choose what we email you about."
+        >
+          <div className="divide-y divide-[var(--line-soft)]">
+            <ToggleRow
+              title="Product news"
+              desc="Occasional updates about new features."
+              on={prefs.product_news}
+              onToggle={() => togglePref("product_news")}
+            />
+            <ToggleRow
+              title="Usage alerts"
+              desc="Notify me when credits are running low."
+              on={prefs.usage_alerts}
+              onToggle={() => togglePref("usage_alerts")}
+            />
+            <ToggleRow
+              title="Security alerts"
+              desc="Sign-ins and important account activity."
+              on={prefs.security_alerts}
+              onToggle={() => togglePref("security_alerts")}
             />
           </div>
-        </div>
+        </Section>
 
-        {/* Save button */}
-        <div className="flex items-center justify-end pt-2">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="flex items-center gap-2 px-8 py-3 bg-[#6d28d9] hover:bg-[#5b21b6] text-white rounded-xl text-sm font-bold shadow-md shadow-[#6d28d9]/15 border border-white/20 transition-all cursor-pointer"
-          >
-            <Save size={16} />
-            Save Settings
-          </motion.button>
+        {/* ── Security / danger ── */}
+        <Section
+          icon={<ShieldCheck size={16} />}
+          title="Security"
+          desc="Password and account controls."
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3! p-4! rounded-xl border border-[var(--line)] mb-4!">
+            <div className="flex items-center gap-3!">
+              <span className="w-9! h-9! rounded-lg grid place-items-center text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)]">
+                <Lock size={15} />
+              </span>
+              <div>
+                <p className="text-[14px] font-medium text-[var(--ink)]">Password</p>
+                <p className="text-[12px] text-[var(--muted)]">
+                  Last changed — never
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => flash("Password reset link sent (demo)")}
+              className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2! rounded-lg border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
+            >
+              Change password
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3!">
+            <button
+              onClick={() => void logout()}
+              className="inline-flex items-center gap-2! text-[13px] font-semibold text-[var(--slate)] px-4! py-2.5! rounded-xl border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
+            >
+              <LogOut size={15} /> Sign out
+            </button>
+            <button
+              onClick={deleteAccount}
+              className="inline-flex items-center gap-2! text-[13px] font-semibold text-rose-600 px-4! py-2.5! rounded-xl border border-rose-100 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 size={15} /> Delete account
+            </button>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+/* ── Small building blocks ── */
+
+function Section({
+  icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white border border-[var(--line)] rounded-2xl p-6! md:p-7! shadow-[var(--shadow-sm)] mb-6!">
+      <div className="flex items-start gap-3! mb-6!">
+        <span className="w-10! h-10! rounded-xl grid place-items-center text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] shrink-0">
+          {icon}
+        </span>
+        <div>
+          <h2 className="text-[16px] font-semibold text-[var(--ink)]">{title}</h2>
+          <p className="text-[13px] text-[var(--slate)] mt-0.5!">{desc}</p>
         </div>
-      </form>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FieldRow({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="w-full!">
+      <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+        {label}
+      </label>
+      <div className="relative">
+        {icon && (
+          <span className="absolute left-3.5! top-1/2 -translate-y-1/2 text-[var(--muted)] pointer-events-none">
+            {icon}
+          </span>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SaveButton({ children }: { children: React.ReactNode }) {
+  return (
+    <button
+      type="submit"
+      className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-6! py-2.5! rounded-xl shadow-[0_8px_24px_rgba(124,58,237,0.25)] transition-transform hover:-translate-y-0.5"
+      style={{ background: "var(--grad)" }}
+    >
+      <Save size={15} /> {children}
+    </button>
+  );
+}
+
+function ToggleRow({
+  title,
+  desc,
+  on,
+  onToggle,
+}: {
+  title: string;
+  desc: string;
+  on: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4! py-4!">
+      <div>
+        <p className="text-[14px] font-medium text-[var(--ink)]">{title}</p>
+        <p className="text-[12.5px] text-[var(--muted)] mt-0.5!">{desc}</p>
+      </div>
+      <button
+        onClick={onToggle}
+        role="switch"
+        aria-checked={on}
+        className={`relative w-11! h-6! rounded-full shrink-0 transition-colors ${
+          on ? "" : "bg-[var(--line)]"
+        }`}
+        style={on ? { background: "var(--grad)" } : undefined}
+      >
+        <span
+          className={`absolute top-0.5! left-0.5! w-5! h-5! rounded-full bg-white shadow-sm transition-transform ${
+            on ? "translate-x-5" : ""
+          }`}
+        />
+      </button>
     </div>
   );
 }
