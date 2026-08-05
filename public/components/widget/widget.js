@@ -2690,7 +2690,7 @@
     }
     .va-expanded-card.chat-open { width: ${480 + CHAT_W}px; }
     @media (max-width: 800px) {
-      .va-expanded-card { width: calc(100vw - 32px); max-width: 480px; height: calc(100vh - 120px); max-height: 540px; }
+      .va-expanded-card { width: calc(100vw - 32px); max-width: 440px; height: calc(100vh - 120px); max-height: 540px; }
       .va-expanded-card.chat-open { width: calc(100vw - 32px); max-width: ${480 + CHAT_W}px; }
     }
 

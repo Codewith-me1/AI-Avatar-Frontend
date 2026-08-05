@@ -3221,19 +3221,18 @@ const MUSETALK_AVATARS = [
   },
 ];
 
-const LLM_MODELS = [
-  { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-  { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-  {
-    value: "claude-3-5-sonnet-20241022",
-    label: "Claude 3.5 Sonnet",
-    provider: "anthropic",
-  },
-  {
-    value: "claude-3-5-haiku-20241022",
-    label: "Claude 3.5 Haiku",
-    provider: "anthropic",
-  },
+// Spoken language for the agent (English is the default).
+const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "hi", label: "Hindi" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "de", label: "German" },
+  { value: "pt", label: "Portuguese" },
+  { value: "it", label: "Italian" },
+  { value: "nl", label: "Dutch" },
+  { value: "ja", label: "Japanese" },
+  { value: "zh", label: "Chinese" },
 ];
 
 // const CARTESIA_VOICES = [
@@ -3735,10 +3734,15 @@ function CreateAgentView({
       setPlayingVoiceId(null);
     } else {
       if (audioRef.current) audioRef.current.pause();
-      audioRef.current = new Audio(url);
+      // previewUrl is stored relative ("./voice/x.wav"); resolve to the public
+      // root so it plays from any dashboard route (not /dashboard/voice/...).
+      const src = url.replace(/^\.?\/*/, "/");
+      const audio = new Audio(src);
+      audioRef.current = audio;
       setPlayingVoiceId(voiceId);
-      audioRef.current.play().catch(() => setPlayingVoiceId(null));
-      audioRef.current.onended = () => setPlayingVoiceId(null);
+      audio.play().catch(() => setPlayingVoiceId(null));
+      audio.onended = () => setPlayingVoiceId(null);
+      audio.onerror = () => setPlayingVoiceId(null);
     }
   };
 
@@ -3929,34 +3933,30 @@ function CreateAgentView({
                             );
                             if (v) handleTogglePreview(e, v.id, v.previewUrl);
                           }}
-                          className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                          className="mt-3 flex items-center gap-2 text-xs font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)] transition-colors"
                         >
                           {playingVoiceId === form.voice_id ? (
                             <Pause size={14} fill="currentColor" />
                           ) : (
                             <Play size={14} fill="currentColor" />
                           )}
-                          Preview Selected Voice
+                          {playingVoiceId === form.voice_id
+                            ? "Stop preview"
+                            : "Preview selected voice"}
                         </button>
                       )}
                     </div>
                   </Field>
-                  <Field label="Language Engine">
+                  <Field label="Language">
                     <div className="relative">
                       <select
-                        value={form.llm_model}
-                        onChange={(e) => {
-                          const m = LLM_MODELS.find(
-                            (x) => x.value === e.target.value,
-                          );
-                          set("llm_model", e.target.value);
-                          if (m) set("llm_provider", m.provider);
-                        }}
+                        value={form.language}
+                        onChange={(e) => set("language", e.target.value)}
                         className={`${inp} appearance-none pr-10`}
                       >
-                        {LLM_MODELS.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label} ({m.provider})
+                        {LANGUAGES.map((l) => (
+                          <option key={l.value} value={l.value}>
+                            {l.label}
                           </option>
                         ))}
                       </select>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -15,8 +15,14 @@ import {
   ArrowUpRight,
   Home,
   LogOut,
+  Coins,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  getPrimaryAgentId,
+  getCreditBalance,
+  type CreditBalance,
+} from "@/lib/api/dashboard";
 
 const NAV = [
   {
@@ -32,6 +38,7 @@ const NAV = [
   {
     heading: "Account",
     items: [
+      { href: "/dashboard/credits", label: "Credits", icon: <Coins size={18} strokeWidth={2} /> },
       { href: "/dashboard/settings", label: "Settings", icon: <Settings size={18} strokeWidth={2} /> },
       { href: "/", label: "Back to site", icon: <Home size={18} strokeWidth={2} /> },
     ],
@@ -56,6 +63,27 @@ export default function DashboardLayout({
   const handleLogout = () => {
     void logout();
   };
+
+  // Best-effort real credit balance for the sidebar (account-scoped via the
+  // first agent). Silent on failure — the sidebar just falls back to zeros.
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    (async () => {
+      const id = await getPrimaryAgentId();
+      if (!id || cancelled) return;
+      try {
+        const bal = await getCreditBalance(id);
+        if (!cancelled) setCredits(bal);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
 
   // Block render until the session is confirmed to avoid a flash of protected
   // content (and to keep child pages from firing API calls before we have a
@@ -113,20 +141,33 @@ export default function DashboardLayout({
         <div className="p-3.5! border-t border-[var(--line-soft)] space-y-3!">
           <div className="rounded-2xl border border-[var(--line)] p-4! bg-[var(--violet-050)]">
             <div className="flex items-center justify-between mb-2!">
-              <span className="text-xs font-semibold text-[var(--ink)]">Free plan</span>
+              <span className="text-xs font-semibold text-[var(--ink)]">Credits</span>
               <span className="text-[10px] font-bold text-[var(--violet-700)] bg-white border border-[var(--violet-100)] px-1.5! py-0.5! rounded-md">
-                0.4 credits
+                {credits ? `${Math.floor(credits.remaining_minutes)} min left` : "—"}
               </span>
             </div>
             <div className="h-1.5! w-full! rounded-full bg-white overflow-hidden mb-3!">
-              <div className="h-full! rounded-full" style={{ width: "18%", background: "var(--grad)" }} />
+              <div
+                className="h-full! rounded-full"
+                style={{
+                  width: `${
+                    credits && credits.credits_minutes > 0
+                      ? Math.min(
+                          100,
+                          (credits.credits_used_minutes / credits.credits_minutes) * 100,
+                        )
+                      : 0
+                  }%`,
+                  background: "var(--grad)",
+                }}
+              />
             </div>
             <Link
-              href="/#pricing"
+              href="/dashboard/credits"
               className="flex items-center justify-center gap-1.5! w-full! py-2! rounded-lg text-white text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5"
               style={{ background: "var(--grad)" }}
             >
-              Upgrade plan <ArrowUpRight size={13} />
+              Add credits <ArrowUpRight size={13} />
             </Link>
           </div>
 

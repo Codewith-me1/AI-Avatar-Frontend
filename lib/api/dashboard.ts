@@ -129,6 +129,40 @@ export const getConversation = (id: string) =>
     `/api/conversations/sessions/${encodeURIComponent(id)}`,
   );
 
+// ── Credits ───────────────────────────────────────────────────────────────────
+// Credit endpoints are scoped by agent_id (they resolve the agent's OWNER),
+// so any of the user's agents returns the same account balance.
+
+export interface CreditBalance {
+  credits_minutes: number;
+  credits_used_seconds: number;
+  credits_used_minutes: number;
+  remaining_seconds: number;
+  remaining_minutes: number;
+  exhausted: boolean;
+}
+
+export const getCreditBalance = (agentId: string) =>
+  apiClient.get<CreditBalance>(
+    `/api/credits/${encodeURIComponent(agentId)}/balance`,
+  );
+
+export const topUpCredits = (agentId: string, minutes: number) =>
+  apiClient.post<CreditBalance>(
+    `/api/credits/${encodeURIComponent(agentId)}/topup`,
+    { minutes },
+  );
+
+/** First agent id (used to key account-level credit calls). null if none. */
+export async function getPrimaryAgentId(): Promise<string | null> {
+  try {
+    const agents = await apiClient.get<Agent[]>("/api/agents/");
+    return agents && agents.length ? agents[0].id : null;
+  } catch {
+    return null;
+  }
+}
+
 /** id → agent name map (best-effort; empty object if the agents API is down). */
 export async function getAgentMap(): Promise<Record<string, string>> {
   try {

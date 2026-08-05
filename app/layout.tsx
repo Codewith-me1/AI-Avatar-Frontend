@@ -33,6 +33,10 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
+
+
+
+
       </body>
     </html>
   );
