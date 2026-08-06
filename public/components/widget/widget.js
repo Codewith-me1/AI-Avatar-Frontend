@@ -2663,7 +2663,7 @@
       box-shadow: 0 14px 34px rgba(0,0,0,0.22);
       background: #11163a;
     }
-    .va-banner-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .va-banner-card video { width: 100%; height: 100%; object-fit: contain; display: block; }
     .va-banner-caption {
       position: absolute; left: 0; right: 0; bottom: 0;
       padding: 14px 14px 12px;
@@ -2675,7 +2675,7 @@
     .va-expanded-card {
       position: absolute;
       bottom: 0; right: 0;
-      width: 480px; height: 540px;
+      width: 480px; height: 450px;
       background: #050505;
       border-radius: 18px;
       border: 1px solid #1A1A2E;
@@ -2690,7 +2690,7 @@
     }
     .va-expanded-card.chat-open { width: ${480 + CHAT_W}px; }
     @media (max-width: 800px) {
-      .va-expanded-card { width: calc(100vw - 32px); max-width: 440px; height: calc(100vh - 120px); max-height: 540px; }
+      .va-expanded-card { width: calc(100vw - 32px); max-width: 440px; height: calc(100vh - 120px); max-height: 450px; }
       .va-expanded-card.chat-open { width: calc(100vw - 32px); max-width: ${480 + CHAT_W}px; }
     }
 
