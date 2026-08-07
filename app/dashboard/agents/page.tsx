@@ -3120,6 +3120,8 @@ import {
   RotateCcw,
   Type,
   Cpu,
+  Globe,
+  Link2,
 } from "lucide-react";
 import { useAgentStore } from "@/store";
 import { apiClient } from "@/lib/api/client";
@@ -3331,6 +3333,21 @@ interface KBInfo {
   name: string;
   document_count: number;
 }
+
+// Website-backed KB (created + crawled via /kb/from-url).
+interface WebsiteKB {
+  id: string;
+  agent_id: string;
+  name: string;
+  source_url: string;
+  kb_type: string;
+  crawl_status: string; // pending | crawling | ready | error | failed
+  pages_indexed: number;
+  crawl_error?: string | null;
+  last_crawled_at?: string | null;
+}
+
+const CRAWL_DONE = new Set(["ready", "error", "failed"]);
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
@@ -4101,7 +4118,7 @@ function KnowledgeBaseStep({
 }) {
   const [docs, setDocs] = useState<UploadedDoc[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [textMode, setTextMode] = useState(false);
+  const [mode, setMode] = useState<"upload" | "text" | "url">("upload");
   const [rawText, setRawText] = useState("");
   const [textName, setTextName] = useState("custom_text.txt");
   const [submittingText, setSubmittingText] = useState(false);
@@ -4110,10 +4127,91 @@ function KnowledgeBaseStep({
   // Poll interval refs keyed by doc id
   const pollRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
+  // ── Website crawler state ───────────────────────────────────────────────────
+  const [siteUrl, setSiteUrl] = useState("");
+  const [restrictScope, setRestrictScope] = useState(true);
+  const [crawlSubmitting, setCrawlSubmitting] = useState(false);
+  const [crawlError, setCrawlError] = useState<string | null>(null);
+  const [siteKbs, setSiteKbs] = useState<WebsiteKB[]>([]);
+  const sitePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const anyCrawling = (list: WebsiteKB[]) =>
+    list.some((k) => !CRAWL_DONE.has((k.crawl_status || "").toLowerCase()));
+
+  const stopSitePoll = useCallback(() => {
+    if (sitePollRef.current) {
+      clearInterval(sitePollRef.current);
+      sitePollRef.current = null;
+    }
+  }, []);
+
+  const loadSiteStatus = useCallback(async (): Promise<WebsiteKB[]> => {
+    try {
+      const list = await apiClient.get<WebsiteKB[]>(
+        `/api/knowledge/agents/${agentId}/kb/from-url/status`,
+      );
+      setSiteKbs(list || []);
+      if (!anyCrawling(list || [])) stopSitePoll();
+      return list || [];
+    } catch {
+      return [];
+    }
+  }, [agentId, stopSitePoll]);
+
+  const startSitePoll = useCallback(() => {
+    if (sitePollRef.current) return;
+    sitePollRef.current = setInterval(loadSiteStatus, 3500);
+  }, [loadSiteStatus]);
+
+  const startCrawl = async () => {
+    const url = siteUrl.trim();
+    if (!url) return;
+    setCrawlSubmitting(true);
+    setCrawlError(null);
+    try {
+      await apiClient.post(`/api/knowledge/agents/${agentId}/kb/from-url`, {
+        url,
+        restrict_to_knowledge: restrictScope,
+      });
+      setSiteUrl("");
+      await loadSiteStatus();
+      startSitePoll();
+    } catch (e: any) {
+      setCrawlError(e?.message ?? "Failed to start the crawl.");
+    } finally {
+      setCrawlSubmitting(false);
+    }
+  };
+
+  const recrawlSite = async (id: string) => {
+    setSiteKbs((prev) =>
+      prev.map((k) => (k.id === id ? { ...k, crawl_status: "pending" } : k)),
+    );
+    try {
+      await apiClient.post(
+        `/api/knowledge/agents/${agentId}/kb/${id}/recrawl`,
+        {},
+      );
+    } catch {
+      /* best-effort */
+    }
+    await loadSiteStatus();
+    startSitePoll();
+  };
+
+  // Load existing website KBs on mount; resume polling if any are still crawling.
+  useEffect(() => {
+    loadSiteStatus().then((list) => {
+      if (anyCrawling(list)) startSitePoll();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSiteStatus, startSitePoll]);
+
   // Cleanup all polls on unmount
   useEffect(
     () => () => {
       Object.values(pollRefs.current).forEach(clearInterval);
+      if (sitePollRef.current) clearInterval(sitePollRef.current);
     },
     [],
   );
@@ -4285,7 +4383,7 @@ function KnowledgeBaseStep({
       pollDoc(currentKbId, result.id);
       setRawText("");
       setTextName("custom_text.txt");
-      setTextMode(false);
+      setMode("upload");
     } catch (err: any) {
       setDocs((prev) =>
         prev.map((d) =>
@@ -4351,24 +4449,31 @@ function KnowledgeBaseStep({
           </div>
         </div>
 
-        {/* Toggle: File upload vs Plain text */}
-        <div className="flex gap-2! mb-6!">
-          <button
-            onClick={() => setTextMode(false)}
-            className={`flex items-center gap-2! px-4! py-2! rounded-lg text-sm font-medium border transition-all ${!textMode ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"}`}
-          >
-            <Upload size={14} /> Upload Files
-          </button>
-          <button
-            onClick={() => setTextMode(true)}
-            className={`flex items-center gap-2 px-4! py-2! rounded-lg text-sm font-medium border transition-all ${textMode ? "bg-[#7c3aed] text-white border-[#7c3aed]" : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"}`}
-          >
-            <Type size={14} /> Paste Text
-          </button>
+        {/* Toggle: File upload vs Plain text vs Website crawl */}
+        <div className="flex flex-wrap gap-2! mb-6!">
+          {(
+            [
+              { key: "upload", label: "Upload Files", icon: <Upload size={14} /> },
+              { key: "text", label: "Paste Text", icon: <Type size={14} /> },
+              { key: "url", label: "Crawl Website", icon: <Globe size={14} /> },
+            ] as const
+          ).map((m) => (
+            <button
+              key={m.key}
+              onClick={() => setMode(m.key)}
+              className={`flex items-center gap-2! px-4! py-2! rounded-lg text-sm font-medium border transition-all ${
+                mode === m.key
+                  ? "bg-[#7c3aed] text-white border-[#7c3aed]"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              {m.icon} {m.label}
+            </button>
+          ))}
         </div>
 
         {/* ── File Upload Area ── */}
-        {!textMode && (
+        {mode === "upload" && (
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -4406,7 +4511,7 @@ function KnowledgeBaseStep({
         )}
 
         {/* ── Plain Text Input ── */}
-        {textMode && (
+        {mode === "text" && (
           <div className="space-y-4 mb-6">
             <Field label="Document Name">
               <input
@@ -4437,6 +4542,141 @@ function KnowledgeBaseStep({
               )}
               {submittingText ? "Uploading…" : "Add to Knowledge Base"}
             </button>
+          </div>
+        )}
+
+        {/* ── Website Crawler ── */}
+        {mode === "url" && (
+          <div className="space-y-4! mb-6!">
+            <Field label="Website URL">
+              <div className="relative">
+                <Link2
+                  size={15}
+                  className="absolute left-3.5! top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                />
+                <input
+                  value={siteUrl}
+                  onChange={(e) => setSiteUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && siteUrl.trim() && !crawlSubmitting)
+                      startCrawl();
+                  }}
+                  placeholder="https://yourcompany.com"
+                  className={`${inp} pl-10!`}
+                  type="url"
+                  inputMode="url"
+                />
+              </div>
+            </Field>
+
+            <label className="flex items-start gap-2.5! cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={restrictScope}
+                onChange={(e) => setRestrictScope(e.target.checked)}
+                className="mt-0.5! w-4! h-4! accent-[#7c3aed]"
+              />
+              <span className="text-[13px] text-gray-600 leading-snug">
+                <span className="font-medium text-gray-800">
+                  Only answer from this website
+                </span>{" "}
+                — locks the agent to the crawled content instead of general
+                knowledge.
+              </span>
+            </label>
+
+            {crawlError && (
+              <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3.5! py-2.5!">
+                <AlertCircle size={15} className="shrink-0" /> {crawlError}
+              </div>
+            )}
+
+            <button
+              onClick={startCrawl}
+              disabled={!siteUrl.trim() || crawlSubmitting}
+              className="flex items-center gap-2! bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-5! py-2.5! rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
+            >
+              {crawlSubmitting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Globe size={16} />
+              )}
+              {crawlSubmitting ? "Starting crawl…" : "Crawl website"}
+            </button>
+
+            <p className="text-xs text-gray-400 leading-relaxed">
+              We read the sitemap first, then follow same-site links · up to 60
+              pages / depth 3 · respects robots.txt · every page is cited by its
+              exact URL.
+            </p>
+          </div>
+        )}
+
+        {/* ── Crawled sites list ── */}
+        {siteKbs.length > 0 && (
+          <div className="space-y-2! mb-2!">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3!">
+              Websites ({siteKbs.length})
+            </p>
+            {siteKbs.map((kb) => {
+              const st = (kb.crawl_status || "").toLowerCase();
+              const done = st === "ready";
+              const failed = st === "error" || st === "failed";
+              return (
+                <div
+                  key={kb.id}
+                  className={`flex items-center gap-3! px-4! py-3! rounded-xl border transition-colors ${
+                    failed
+                      ? "bg-red-50 border-red-200"
+                      : done
+                        ? "bg-green-50 border-green-200"
+                        : "bg-white border-gray-200"
+                  }`}
+                >
+                  <div className="w-8! h-8! rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                    <Globe size={16} className="text-gray-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {kb.source_url}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {done
+                        ? `${kb.pages_indexed} page${kb.pages_indexed === 1 ? "" : "s"} indexed`
+                        : failed
+                          ? kb.crawl_error || "Crawl failed"
+                          : "Crawling…"}
+                    </p>
+                  </div>
+
+                  {/* Status badge */}
+                  {done ? (
+                    <span className="flex items-center gap-1.5! text-xs font-medium text-green-700 bg-green-100 px-2.5! py-1! rounded-full">
+                      <CheckCircle2 size={11} /> Ready
+                    </span>
+                  ) : failed ? (
+                    <span className="flex items-center gap-1.5! text-xs font-medium text-red-600 bg-red-100 px-2.5! py-1! rounded-full">
+                      <AlertCircle size={11} /> Error
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5! text-xs font-medium text-amber-600 bg-amber-50 px-2.5! py-1! rounded-full">
+                      <Loader2 size={11} className="animate-spin" /> Crawling
+                    </span>
+                  )}
+
+                  {/* Recrawl */}
+                  {(done || failed) && (
+                    <button
+                      onClick={() => recrawlSite(kb.id)}
+                      title="Re-crawl to refresh content"
+                      className="w-7! h-7! rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-[#7c3aed] transition-colors shrink-0"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -4514,10 +4754,10 @@ function KnowledgeBaseStep({
         )}
 
         {/* Empty state */}
-        {docs.length === 0 && !textMode && (
+        {docs.length === 0 && mode === "upload" && (
           <p className="text-center text-xs text-gray-400 py-2!">
-            No documents yet — upload files or paste text above, or skip this
-            step.
+            No documents yet — upload files, paste text, or crawl a website
+            above. You can also skip this step.
           </p>
         )}
       </Card>
