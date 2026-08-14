@@ -17,8 +17,23 @@ import {
   Trash2,
   Lock,
   Pencil,
+  Server,
+  Send,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { relTime } from "@/lib/api/dashboard";
+import {
+  getSmtp,
+  putSmtp,
+  testSmtp,
+  deleteSmtp,
+  type SmtpConfig,
+} from "@/lib/api/smtp";
 
 const inp =
   "w-full! px-4! py-2.5! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all";
@@ -455,6 +470,9 @@ export default function AccountSettingsPage() {
           </div>
         </Section>
 
+        {/* ── Email (SMTP) ── */}
+        <SmtpSection accountEmail={user?.email || ""} />
+
         {/* ── Security / danger ── */}
         <Section
           icon={<ShieldCheck size={16} />}
@@ -502,6 +520,377 @@ export default function AccountSettingsPage() {
 }
 
 /* ── Small building blocks ── */
+
+/* ── SMTP (outbound email) ── */
+function errText(e: unknown, fallback: string): string {
+  const m = e instanceof Error ? e.message : "";
+  if (!m) return fallback;
+  return m.length > 220 ? m.slice(0, 220) + "…" : m;
+}
+
+function SmtpStatus({ cfg }: { cfg: SmtpConfig | null }) {
+  if (cfg?.verified_at)
+    return (
+      <p className="flex items-center gap-1.5! text-[12.5px] text-emerald-700 mt-0.5!">
+        <CheckCircle2 size={13} /> Verified {relTime(cfg.verified_at)}
+      </p>
+    );
+  if (cfg?.last_error)
+    return (
+      <p className="flex items-start gap-1.5! text-[12.5px] text-rose-600 mt-0.5! max-w-[420px]!">
+        <AlertCircle size={13} className="shrink-0 mt-0.5!" />
+        <span className="line-clamp-2">Last test failed: {cfg.last_error}</span>
+      </p>
+    );
+  if (cfg?.password_set)
+    return (
+      <p className="text-[12.5px] text-[var(--muted)] mt-0.5!">
+        Configured — send a test to verify it works.
+      </p>
+    );
+  return (
+    <p className="text-[12.5px] text-[var(--muted)] mt-0.5!">Not configured.</p>
+  );
+}
+
+function SmtpSection({ accountEmail }: { accountEmail: string }) {
+  const [cfg, setCfg] = useState<SmtpConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showPw, setShowPw] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [form, setForm] = useState({
+    enabled: false,
+    host: "",
+    port: 587,
+    username: "",
+    password: "",
+    from_email: "",
+    from_name: "",
+    reply_to: "",
+    security: "starttls" as "starttls" | "ssl" | "none",
+  });
+
+  const apply = (c: SmtpConfig) => {
+    setCfg(c);
+    setForm({
+      enabled: c.enabled,
+      host: c.host || "",
+      port: c.port || 587,
+      username: c.username || "",
+      password: "",
+      from_email: c.from_email || "",
+      from_name: c.from_name || "",
+      reply_to: c.reply_to || "",
+      security: c.use_ssl ? "ssl" : c.use_tls ? "starttls" : "none",
+    });
+  };
+
+  useEffect(() => {
+    getSmtp()
+      .then(apply)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    setTestTo(accountEmail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const set = (k: string, v: string | number | boolean) =>
+    setForm((f) => ({ ...f, [k]: v }));
+  const flash = (ok: boolean, text: string) => {
+    setMsg({ ok, text });
+    setTimeout(() => setMsg(null), 6000);
+  };
+
+  const pickSecurity = (s: "starttls" | "ssl" | "none") =>
+    setForm((f) => ({
+      ...f,
+      security: s,
+      port: s === "ssl" ? 465 : s === "starttls" ? 587 : f.port,
+    }));
+
+  const payload = () => ({
+    enabled: form.enabled,
+    host: form.host.trim() || undefined,
+    port: Number(form.port) || 587,
+    username: form.username.trim() || undefined,
+    password: form.password ? form.password : undefined,
+    from_email: form.from_email.trim() || undefined,
+    from_name: form.from_name.trim() || undefined,
+    use_tls: form.security === "starttls",
+    use_ssl: form.security === "ssl",
+    reply_to: form.reply_to.trim() || undefined,
+  });
+
+  const save = async () => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      apply(await putSmtp(payload()));
+      flash(true, "Email settings saved.");
+    } catch (e) {
+      flash(false, errText(e, "Couldn't save email settings."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runTest = async () => {
+    setTesting(true);
+    setMsg(null);
+    try {
+      const r = await testSmtp(testTo.trim() || undefined);
+      flash(true, `Test email sent to ${r.to}.`);
+    } catch (e) {
+      flash(false, errText(e, "Test failed."));
+    } finally {
+      setTesting(false);
+      getSmtp().then(apply).catch(() => {});
+    }
+  };
+
+  const clearAll = async () => {
+    if (!confirm("Clear your SMTP configuration? Outbound email will stop."))
+      return;
+    setSaving(true);
+    try {
+      await deleteSmtp();
+      apply(await getSmtp());
+      flash(true, "SMTP configuration cleared.");
+    } catch (e) {
+      flash(false, errText(e, "Couldn't clear the configuration."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const canTest = !!cfg?.enabled && !!cfg?.host;
+  const lbl = "block text-[13px] font-medium text-[var(--slate)] mb-1.5!";
+
+  return (
+    <Section
+      icon={<Server size={16} />}
+      title="Email (SMTP)"
+      desc="Send confirmations and notifications from your own mail server."
+    >
+      {loading ? (
+        <div className="py-6! grid place-items-center">
+          <div className="w-6! h-6! border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* Enable + status */}
+          <div className="flex flex-wrap items-center justify-between gap-3! p-4! rounded-xl border border-[var(--line)] bg-[var(--violet-050)] mb-5!">
+            <div>
+              <p className="text-[14px] font-medium text-[var(--ink)]">
+                Outbound email
+              </p>
+              <SmtpStatus cfg={cfg} />
+            </div>
+            <button
+              role="switch"
+              aria-checked={form.enabled}
+              onClick={() => set("enabled", !form.enabled)}
+              className={`relative w-11! h-6! rounded-full shrink-0 transition-colors ${
+                form.enabled ? "" : "bg-[var(--line)]"
+              }`}
+              style={form.enabled ? { background: "var(--grad)" } : undefined}
+            >
+              <span
+                className={`absolute top-0.5! left-0.5! w-5! h-5! rounded-full bg-white shadow-sm transition-transform ${
+                  form.enabled ? "translate-x-5" : ""
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+            <div className="sm:col-span-2">
+              <label className={lbl}>SMTP host</label>
+              <input
+                className={inp}
+                value={form.host}
+                onChange={(e) => set("host", e.target.value)}
+                placeholder="smtp.yourprovider.com"
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>Port</label>
+              <input
+                type="number"
+                min={1}
+                max={65535}
+                className={inp}
+                value={form.port}
+                onChange={(e) => set("port", Number(e.target.value))}
+                placeholder="587"
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>Encryption</label>
+              <div className="flex items-center gap-1! bg-white border border-[var(--line)] rounded-xl p-1!">
+                {(
+                  [
+                    { k: "starttls", label: "STARTTLS" },
+                    { k: "ssl", label: "SSL/TLS" },
+                    { k: "none", label: "None" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.k}
+                    type="button"
+                    onClick={() => pickSecurity(o.k)}
+                    className={`flex-1 px-2! py-1.5! rounded-lg text-[12px] font-medium transition-colors ${
+                      form.security === o.k
+                        ? "bg-[var(--violet-050)] text-[var(--violet-700)]"
+                        : "text-[var(--slate)] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={lbl}>Username</label>
+              <input
+                className={inp}
+                value={form.username}
+                onChange={(e) => set("username", e.target.value)}
+                placeholder="apikey / user@domain.com"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  className={`${inp} pr-11!`}
+                  value={form.password}
+                  onChange={(e) => set("password", e.target.value)}
+                  placeholder={
+                    cfg?.password_set
+                      ? "•••••••• saved — leave blank to keep"
+                      : "App password"
+                  }
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute right-3! top-1/2 -translate-y-1/2 p-1! text-[var(--muted)] hover:text-[var(--violet-700)] transition-colors"
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className={lbl}>From email</label>
+              <input
+                className={inp}
+                value={form.from_email}
+                onChange={(e) => set("from_email", e.target.value)}
+                placeholder="hello@yourcompany.com"
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>From name</label>
+              <input
+                className={inp}
+                value={form.from_name}
+                onChange={(e) => set("from_name", e.target.value)}
+                placeholder="Your Company"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={lbl}>Reply-to (optional)</label>
+              <input
+                className={inp}
+                value={form.reply_to}
+                onChange={(e) => set("reply_to", e.target.value)}
+                placeholder="support@yourcompany.com"
+              />
+            </div>
+          </div>
+
+          {msg && (
+            <div
+              className={`flex items-center gap-2! text-[13px] rounded-xl px-3.5! py-2.5! mt-4! ${
+                msg.ok
+                  ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
+                  : "text-rose-600 bg-rose-50 border border-rose-100"
+              }`}
+            >
+              {msg.ok ? <Check size={15} /> : <AlertCircle size={15} />}
+              <span className="break-words min-w-0">{msg.text}</span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-3! mt-6!">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-5! py-2.5! rounded-xl shadow-[0_8px_24px_rgba(124,58,237,0.25)] disabled:opacity-60"
+              style={{ background: "var(--grad)" }}
+            >
+              {saving ? (
+                <RefreshCw size={15} className="animate-spin" />
+              ) : (
+                <Save size={15} />
+              )}
+              Save settings
+            </button>
+
+            <div className="flex items-center gap-2! ml-auto!">
+              <input
+                value={testTo}
+                onChange={(e) => setTestTo(e.target.value)}
+                placeholder="test@you.com"
+                className={`${inp} w-52! py-2!`}
+              />
+              <button
+                onClick={runTest}
+                disabled={testing || !canTest}
+                title={canTest ? "" : "Save & enable SMTP first"}
+                className="inline-flex items-center gap-2! text-[13px] font-semibold text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] hover:bg-[var(--violet-100)] px-4! py-2.5! rounded-xl transition-colors disabled:opacity-50"
+              >
+                {testing ? (
+                  <RefreshCw size={15} className="animate-spin" />
+                ) : (
+                  <Send size={15} />
+                )}
+                Send test
+              </button>
+            </div>
+          </div>
+
+          {(cfg?.password_set || cfg?.enabled) && (
+            <button
+              onClick={clearAll}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5! text-[12.5px] font-semibold text-rose-600 hover:underline mt-4!"
+            >
+              <Trash2 size={13} /> Clear SMTP configuration
+            </button>
+          )}
+        </>
+      )}
+    </Section>
+  );
+}
 
 function Section({
   icon,
