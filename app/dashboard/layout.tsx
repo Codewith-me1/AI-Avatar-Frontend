@@ -16,6 +16,7 @@ import {
   Home,
   LogOut,
   Coins,
+  Contact,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -31,6 +32,7 @@ const NAV = [
       { href: "/dashboard", label: "Overview", icon: <LayoutDashboard size={18} strokeWidth={2} /> },
       { href: "/dashboard/agents", label: "Agents", icon: <Users size={18} strokeWidth={2} /> },
       { href: "/dashboard/conversations", label: "Conversations", icon: <MessageSquare size={18} strokeWidth={2} /> },
+      { href: "/dashboard/crm", label: "CRM", icon: <Contact size={18} strokeWidth={2} /> },
       { href: "/dashboard/users", label: "Users", icon: <UserCheck size={18} strokeWidth={2} /> },
       { href: "/dashboard/reports", label: "Reports", icon: <BarChart3 size={18} strokeWidth={2} /> },
     ],

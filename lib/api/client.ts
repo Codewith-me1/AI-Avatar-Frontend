@@ -152,6 +152,18 @@ class ApiClient {
       body: JSON.stringify(body),
     });
   }
+  put<T>(path: string, body: unknown): Promise<T> {
+    return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+  }
+  /** Authenticated binary GET (e.g. CSV export) → Blob. */
+  async getBlob(path: string): Promise<Blob> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      credentials: "include",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    });
+    if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+    return res.blob();
+  }
   delete(path: string): Promise<void> {
     return this.request<void>(path, { method: "DELETE" });
   }
