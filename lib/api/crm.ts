@@ -63,6 +63,8 @@ export interface CrmSettings {
   enable_appointments: boolean;
   enable_human_handoff: boolean;
   appointment_config: AppointmentConfig;
+  // Google Meet room reused for every booking; normalized/validated server-side.
+  meet_link?: string | null;
 }
 
 export interface CrmSummary {

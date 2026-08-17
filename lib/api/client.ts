@@ -1,27 +1,32 @@
-import type { AuthResponse, AuthUser, RegisterInput } from "@/types";
+import type {
+  AuthResponse,
+  AuthUser,
+  RegisterInput,
+  UserSessionInfo,
+} from "@/types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://avat.gigatechservices.org";
 
 /**
- * Security model
- * ──────────────
- * - The ACCESS token lives ONLY in module memory (never localStorage / cookies
- *   readable by JS). It is short-lived and sent as `Authorization: Bearer`.
- * - The REFRESH token is an httpOnly, Secure, SameSite cookie set by the backend.
- *   JS can never read it; it rides along automatically on `credentials: "include"`
- *   requests to the auth endpoints only (backend scopes it to Path=/api/auth).
- * - On a 401 we transparently attempt ONE refresh (single-flight) and retry.
- * - If refresh fails we drop the in-memory token and notify the app to sign out.
+ * Security model — server-side sessions
+ * ─────────────────────────────────────
+ * - Login sets an HttpOnly, Secure `session_id` cookie (the primary credential,
+ *   invisible to JS) AND returns the session_id in the body.
+ * - Every request uses `credentials: "include"` so the cookie rides along.
+ * - We also keep the session_id in module MEMORY (never localStorage) and send it
+ *   as `Authorization: Bearer` — a fallback for cross-site setups where a
+ *   third-party cookie may be blocked. The backend accepts either.
+ * - Sessions are server-side, so there is NO refresh flow. On a 401 we drop the
+ *   in-memory token and tell the app to sign out (the server can revoke instantly).
  */
 let accessToken: string | null = null;
-let refreshInFlight: Promise<AuthResponse | null> | null = null;
 let authFailureHandler: (() => void) | null = null;
 
 const AUTH_PATHS = [
   "/api/auth/login",
   "/api/auth/register",
-  "/api/auth/refresh",
+  "/api/auth/me",
   "/api/auth/logout",
 ];
 
@@ -71,34 +76,7 @@ class ApiClient {
     return AUTH_PATHS.some((p) => path.startsWith(p));
   }
 
-  // ── Refresh (single-flight) ─────────────────────────────────────────────────
-  private refreshSession(): Promise<AuthResponse | null> {
-    if (!refreshInFlight) {
-      refreshInFlight = fetch(`${this.baseUrl}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      })
-        .then(async (res) => {
-          if (!res.ok) return null;
-          const data = (await res.json().catch(() => null)) as AuthResponse | null;
-          if (data?.access_token) accessToken = data.access_token;
-          return data;
-        })
-        .catch(() => null)
-        .finally(() => {
-          refreshInFlight = null;
-        });
-    }
-    return refreshInFlight;
-  }
-
-  /** Public: attempt to restore a session from the refresh cookie. */
-  refresh(): Promise<AuthResponse | null> {
-    return this.refreshSession();
-  }
-
-  // ── Core request with transparent 401 → refresh → retry ─────────────────────
+  // ── Core request (cookie + Bearer fallback; 401 → sign out) ─────────────────
   private async request<T>(
     path: string,
     init: RequestInit,
@@ -107,25 +85,17 @@ class ApiClient {
     const isForm = !!opts.isForm;
     const allowRetry = opts.allowRetry !== false;
 
-    const exec = () =>
-      fetch(`${this.baseUrl}${path}`, {
-        ...init,
-        credentials: "include",
-        headers: this.buildHeaders(init.headers, isForm),
-      });
-
-    let res = await exec();
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: this.buildHeaders(init.headers, isForm),
+    });
 
     if (res.status === 401 && allowRetry && !this.isAuthPath(path)) {
-      const refreshed = await this.refreshSession();
-      if (refreshed?.access_token) {
-        res = await exec();
-      }
-      if (res.status === 401) {
-        accessToken = null;
-        authFailureHandler?.();
-        throw new Error("Unauthorized");
-      }
+      // Server-side sessions can be revoked instantly — nothing to refresh.
+      accessToken = null;
+      authFailureHandler?.();
+      throw new Error("Unauthorized");
     }
 
     if (!res.ok) {
@@ -174,43 +144,65 @@ class ApiClient {
     return this.request<T>(path, { method: "POST", body: formData }, { isForm: true });
   }
 
-  // ── Auth flows ──────────────────────────────────────────────────────────────
+  // ── Auth flows (server-side sessions) ───────────────────────────────────────
   async login(email: string, password: string): Promise<AuthResponse> {
     const data = await this.request<AuthResponse>(
       "/api/auth/login",
       { method: "POST", body: JSON.stringify({ email, password }) },
       { allowRetry: false },
     );
-    accessToken = data.access_token;
+    accessToken = data.session_id; // Bearer fallback for cookie-blocked setups
     return data;
   }
 
-  async register(payload: RegisterInput): Promise<AuthResponse> {
-    const data = await this.request<AuthResponse>(
+  /** Register a new account. Does NOT auto-login (returns the user only). */
+  async register(payload: RegisterInput): Promise<AuthUser> {
+    return this.request<AuthUser>(
       "/api/auth/register",
       { method: "POST", body: JSON.stringify(payload) },
       { allowRetry: false },
     );
-    if (data?.access_token) accessToken = data.access_token;
-    return data;
+  }
+
+  /** Current user from the active session (cookie or Bearer). */
+  me(): Promise<AuthUser> {
+    return this.request<AuthUser>(
+      "/api/auth/me",
+      { method: "GET" },
+      { allowRetry: false },
+    );
   }
 
   async logout(): Promise<void> {
     try {
-      await this.request<void>(
-        "/api/auth/logout",
-        { method: "POST" },
-        { allowRetry: false },
-      );
+      await this.request<void>("/api/auth/logout", { method: "POST" }, { allowRetry: false });
     } catch {
-      /* best-effort; always clear local state below */
+      /* best-effort */
     } finally {
       accessToken = null;
     }
   }
 
-  me(): Promise<AuthUser> {
-    return this.request<AuthUser>("/api/auth/me", { method: "GET" });
+  async logoutAll(): Promise<void> {
+    try {
+      await this.request<void>("/api/auth/logout-all", { method: "POST" }, { allowRetry: false });
+    } catch {
+      /* best-effort */
+    } finally {
+      accessToken = null;
+    }
+  }
+
+  changePassword(current_password: string, new_password: string): Promise<unknown> {
+    return this.post("/api/auth/change-password", { current_password, new_password });
+  }
+
+  listSessions(): Promise<UserSessionInfo[]> {
+    return this.get<UserSessionInfo[]>("/api/auth/sessions");
+  }
+
+  revokeSession(id: string): Promise<void> {
+    return this.delete(`/api/auth/sessions/${encodeURIComponent(id)}`);
   }
 }
 

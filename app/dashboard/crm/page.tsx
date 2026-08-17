@@ -25,6 +25,7 @@ import {
   Sparkles,
   ShieldAlert,
   Users,
+  Video,
 } from "lucide-react";
 import { getAgentMap, parseUTC, relTime, fmtNumber } from "@/lib/api/dashboard";
 import {
@@ -808,6 +809,7 @@ function SettingsTab({ agentId }: { agentId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -827,9 +829,11 @@ function SettingsTab({ agentId }: { agentId: string }) {
     if (!settings || !hours) return;
     setSaving(true);
     setSaved(false);
+    setSaveErr(null);
     try {
       const body: CrmSettings = {
         ...settings,
+        meet_link: (settings.meet_link || "").trim() || null,
         appointment_config: { ...settings.appointment_config, business_hours: fromEditHours(hours) },
       };
       const res = await putCrmSettings(agentId, body);
@@ -837,8 +841,12 @@ function SettingsTab({ agentId }: { agentId: string }) {
       setHours(toEditHours(res.appointment_config.business_hours));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      setSaveErr(
+        e instanceof Error && e.message
+          ? e.message
+          : "Couldn't save — check the Google Meet link.",
+      );
     } finally {
       setSaving(false);
     }
@@ -902,6 +910,23 @@ function SettingsTab({ agentId }: { agentId: string }) {
             Slots are generated in your timezone and spoken to visitors in theirs.
           </p>
 
+          {/* Google Meet link */}
+          <div className="mb-6! p-4! rounded-xl border border-[var(--line)] bg-[var(--violet-050)]/40">
+            <label className="flex items-center gap-2! text-[13px] font-medium text-[var(--slate)] mb-1.5!">
+              <Video size={14} className="text-[var(--violet-700)]" /> Google Meet link
+            </label>
+            <input
+              className={inp}
+              value={settings.meet_link || ""}
+              onChange={(e) => setSettings({ ...settings, meet_link: e.target.value })}
+              placeholder="meet.google.com/abc-defg-hij  (or a bare code)"
+            />
+            <p className="text-[12px] text-[var(--muted)] mt-1.5!">
+              Reused for every booking and added to confirmation emails. Paste the
+              full URL or just the code — we normalize it and reject non-Meet links.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4! mb-6!">
             <L label="Timezone">
               <select className={`${inp} appearance-none`} value={cfg.timezone} onChange={(e) => patchCfg({ timezone: e.target.value })}>
@@ -939,6 +964,12 @@ function SettingsTab({ agentId }: { agentId: string }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {saveErr && (
+        <div className="flex items-center gap-2! text-[13px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4! py-3!">
+          <AlertCircle size={15} className="shrink-0" /> {saveErr}
         </div>
       )}
 

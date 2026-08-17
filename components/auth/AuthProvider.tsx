@@ -5,12 +5,11 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api/client";
-import type { AuthResponse, AuthUser, RegisterInput } from "@/types";
+import type { AuthUser, RegisterInput } from "@/types";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -38,54 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isPublicEmbed = !!pathname && pathname.startsWith("/widget");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
-  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearTimer = useCallback(() => {
-    if (refreshTimer.current) {
-      clearTimeout(refreshTimer.current);
-      refreshTimer.current = null;
-    }
-  }, []);
-
-  // Proactively refresh shortly before the access token expires so an active
-  // user never hits a 401 mid-action.
-  const scheduleRefresh = useCallback(
-    (expiresInSeconds?: number) => {
-      clearTimer();
-      const ttl = expiresInSeconds && expiresInSeconds > 0 ? expiresInSeconds : 900;
-      const delayMs = Math.max(15, ttl - 60) * 1000; // 60s early, floor 15s
-      refreshTimer.current = setTimeout(async () => {
-        const data = await apiClient.refresh();
-        if (data?.access_token) {
-          setUser(data.user);
-          scheduleRefresh(data.expires_in);
-        } else {
-          setUser(null);
-          setStatus("unauthenticated");
-        }
-      }, delayMs);
-    },
-    [clearTimer],
-  );
-
-  const applySession = useCallback(
-    (data: AuthResponse) => {
-      apiClient.setAccessToken(data.access_token);
-      setUser(data.user);
-      setStatus("authenticated");
-      scheduleRefresh(data.expires_in);
-    },
-    [scheduleRefresh],
-  );
 
   const forceSignOut = useCallback(() => {
-    clearTimer();
-    apiClient.setAccessToken(null);
     setUser(null);
     setStatus("unauthenticated");
-  }, [clearTimer]);
+  }, []);
 
-  // Bootstrap: try to restore a session from the httpOnly refresh cookie.
+  // Bootstrap: restore the session from the HttpOnly cookie via /me.
   useEffect(() => {
     if (isPublicEmbed) {
       setStatus("unauthenticated");
@@ -100,11 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     apiClient
-      .refresh()
-      .then((data) => {
+      .me()
+      .then((u) => {
         if (cancelled) return;
-        if (data?.access_token) applySession(data);
-        else setStatus("unauthenticated");
+        setUser(u);
+        setStatus("authenticated");
       })
       .catch(() => {
         if (!cancelled) setStatus("unauthenticated");
@@ -113,34 +71,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       apiClient.setAuthFailureHandler(null);
-      clearTimer();
     };
-  }, [applySession, forceSignOut, clearTimer, router, isPublicEmbed]);
+  }, [forceSignOut, router, isPublicEmbed]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const data = await apiClient.login(email, password);
-      applySession(data);
-    },
-    [applySession],
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const data = await apiClient.login(email, password);
+    setUser(data.user);
+    setStatus("authenticated");
+  }, []);
 
-  const register = useCallback(
-    async (payload: RegisterInput) => {
-      const data = await apiClient.register(payload);
-      // Backend auto-logs-in on register (returns an access token).
-      if (data?.access_token) applySession(data);
-    },
-    [applySession],
-  );
+  const register = useCallback(async (payload: RegisterInput) => {
+    // Session auth: register creates the account, then we sign in to start a session.
+    await apiClient.register(payload);
+    const data = await apiClient.login(payload.email, payload.password);
+    setUser(data.user);
+    setStatus("authenticated");
+  }, []);
 
   const logout = useCallback(async () => {
-    clearTimer();
     await apiClient.logout();
     setUser(null);
     setStatus("unauthenticated");
     router.replace("/login");
-  }, [clearTimer, router]);
+  }, [router]);
 
   // Merge a local patch into the current user (e.g. after editing the profile
   // in Settings) so the UI reflects it immediately for the session.

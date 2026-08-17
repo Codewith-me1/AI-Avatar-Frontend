@@ -24,9 +24,13 @@ import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
+  Monitor,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { apiClient } from "@/lib/api/client";
 import { relTime } from "@/lib/api/dashboard";
+import type { UserSessionInfo } from "@/types";
 import {
   getSmtp,
   putSmtp,
@@ -479,27 +483,11 @@ export default function AccountSettingsPage() {
           title="Security"
           desc="Password and account controls."
         >
-          <div className="flex flex-wrap items-center justify-between gap-3! p-4! rounded-xl border border-[var(--line)] mb-4!">
-            <div className="flex items-center gap-3!">
-              <span className="w-9! h-9! rounded-lg grid place-items-center text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)]">
-                <Lock size={15} />
-              </span>
-              <div>
-                <p className="text-[14px] font-medium text-[var(--ink)]">Password</p>
-                <p className="text-[12px] text-[var(--muted)]">
-                  Last changed — never
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => flash("Password reset link sent (demo)")}
-              className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2! rounded-lg border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
-            >
-              Change password
-            </button>
-          </div>
+          <ChangePassword />
 
-          <div className="flex flex-wrap items-center justify-between gap-3!">
+          <ActiveSessions />
+
+          <div className="flex flex-wrap items-center justify-between gap-3! mt-6!">
             <button
               onClick={() => void logout()}
               className="inline-flex items-center gap-2! text-[13px] font-semibold text-[var(--slate)] px-4! py-2.5! rounded-xl border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
@@ -889,6 +877,153 @@ function SmtpSection({ accountEmail }: { accountEmail: string }) {
         </>
       )}
     </Section>
+  );
+}
+
+/* ── Change password ── */
+function ChangePassword() {
+  const [open, setOpen] = useState(false);
+  const [cur, setCur] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async () => {
+    setMsg(null);
+    if (next.length < 8) return setMsg({ ok: false, text: "New password must be at least 8 characters." });
+    if (next !== confirm) return setMsg({ ok: false, text: "New passwords don't match." });
+    setBusy(true);
+    try {
+      await apiClient.changePassword(cur, next);
+      setMsg({ ok: true, text: "Password changed. Other devices were signed out." });
+      setCur(""); setNext(""); setConfirm("");
+      setTimeout(() => { setOpen(false); setMsg(null); }, 2500);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "";
+      setMsg({ ok: false, text: /current|incorrect|match|400|401/i.test(m) ? "Your current password is incorrect." : (m || "Couldn't change password.") });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-[var(--line)] mb-4! overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3! p-4!">
+        <div className="flex items-center gap-3!">
+          <span className="w-9! h-9! rounded-lg grid place-items-center text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)]">
+            <KeyRound size={15} />
+          </span>
+          <div>
+            <p className="text-[14px] font-medium text-[var(--ink)]">Password</p>
+            <p className="text-[12px] text-[var(--muted)]">
+              Changing it signs out your other devices.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2! rounded-lg border border-[var(--line)] hover:bg-[var(--line-soft)] transition-colors"
+        >
+          {open ? "Cancel" : "Change password"}
+        </button>
+      </div>
+      {open && (
+        <div className="p-4! pt-0! space-y-3!">
+          <div className="relative">
+            <input type={show ? "text" : "password"} className={`${inp} pr-11!`} value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Current password" autoComplete="current-password" />
+            <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3! top-1/2 -translate-y-1/2 p-1! text-[var(--muted)] hover:text-[var(--violet-700)]">{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+          </div>
+          <input type={show ? "text" : "password"} className={inp} value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (min 8 chars)" autoComplete="new-password" />
+          <input type={show ? "text" : "password"} className={inp} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" />
+          {msg && (
+            <div className={`flex items-center gap-2! text-[13px] rounded-xl px-3.5! py-2.5! ${msg.ok ? "text-emerald-700 bg-emerald-50 border border-emerald-100" : "text-rose-600 bg-rose-50 border border-rose-100"}`}>
+              {msg.ok ? <Check size={15} /> : <AlertCircle size={15} />} {msg.text}
+            </div>
+          )}
+          <div className="flex justify-end!">
+            <button onClick={submit} disabled={busy || !cur || !next} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-5! py-2.5! rounded-xl disabled:opacity-60" style={{ background: "var(--grad)" }}>
+              {busy ? <RefreshCw size={15} className="animate-spin" /> : <Check size={15} />} Update password
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Active login sessions ("devices") ── */
+function ActiveSessions() {
+  const { logout } = useAuth();
+  const [sessions, setSessions] = useState<UserSessionInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    apiClient
+      .listSessions()
+      .then((s) => setSessions(s || []))
+      .catch(() => setSessions([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const revoke = async (id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await apiClient.revokeSession(id);
+    } catch {
+      load();
+    }
+  };
+
+  const signOutEverywhere = async () => {
+    if (!confirm("Sign out on all devices, including this one?")) return;
+    await apiClient.logoutAll();
+    void logout();
+  };
+
+  return (
+    <div className="rounded-xl border border-[var(--line)] p-4! mb-2!">
+      <div className="flex items-center justify-between mb-3!">
+        <p className="text-[14px] font-medium text-[var(--ink)] flex items-center gap-2!">
+          <Monitor size={15} className="text-[var(--violet-700)]" /> Active sessions
+        </p>
+        {sessions.length > 1 && (
+          <button onClick={signOutEverywhere} className="text-[12.5px] font-semibold text-rose-600 hover:underline">
+            Sign out everywhere
+          </button>
+        )}
+      </div>
+      {loading ? (
+        <div className="py-3! grid place-items-center"><div className="w-5! h-5! border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" /></div>
+      ) : sessions.length === 0 ? (
+        <p className="text-[13px] text-[var(--muted)]">No other active sessions.</p>
+      ) : (
+        <div className="space-y-2!">
+          {sessions.map((s) => (
+            <div key={s.id} className="flex items-center gap-3! p-3! rounded-lg border border-[var(--line-soft)]">
+              <span className="w-8! h-8! rounded-lg grid place-items-center text-[var(--slate)] bg-[var(--line-soft)] shrink-0"><Monitor size={15} /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[var(--ink)] truncate">
+                  {s.user_agent || "Unknown device"}
+                  {s.current && <span className="ml-2! text-[10px] font-bold text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-1.5! py-0.5! rounded-full align-middle">This device</span>}
+                </p>
+                <p className="text-[11.5px] text-[var(--muted)]">
+                  {s.ip_address || "—"} · active {relTime(s.last_seen_at)}
+                </p>
+              </div>
+              {!s.current && (
+                <button onClick={() => revoke(s.id)} title="Sign out this device" className="w-8! h-8! rounded-lg grid place-items-center text-[var(--muted)] hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0">
+                  <LogOut size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

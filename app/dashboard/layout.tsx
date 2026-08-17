@@ -17,6 +17,7 @@ import {
   LogOut,
   Coins,
   Contact,
+  Shield,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -125,7 +126,22 @@ export default function DashboardLayout({
         </div>
 
         <div className="flex-1 overflow-y-auto px-3.5! py-6! space-y-7! no-scrollbar">
-          {NAV.map((section) => (
+          {(user?.is_superuser
+            ? [
+                ...NAV,
+                {
+                  heading: "Admin",
+                  items: [
+                    {
+                      href: "/dashboard/admin",
+                      label: "Platform admin",
+                      icon: <Shield size={18} strokeWidth={2} />,
+                    },
+                  ],
+                },
+              ]
+            : NAV
+          ).map((section) => (
             <div key={section.heading}>
               <p className="px-3! text-[10px] font-semibold text-[var(--muted)] uppercase tracking-[0.12em] mb-2.5!">
                 {section.heading}

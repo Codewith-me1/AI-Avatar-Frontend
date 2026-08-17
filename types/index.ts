@@ -130,10 +130,12 @@ export interface AuthUser {
   last_login_at?: string | null;
 }
 
+// Server-side session login (session_id is set as an HttpOnly cookie AND
+// returned in the body so it can also be sent as a Bearer fallback).
 export interface AuthResponse {
-  access_token: string;
+  session_id: string;
   token_type?: string;
-  expires_in?: number; // seconds until access token expiry
+  expires_at?: string;
   user: AuthUser;
 }
 
@@ -141,6 +143,17 @@ export interface RegisterInput {
   email: string;
   password: string;
   full_name?: string;
+}
+
+// One active login session ("device") for the current user.
+export interface UserSessionInfo {
+  id: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+  last_seen_at: string;
+  expires_at: string;
+  current: boolean;
 }
 
 // API response types
