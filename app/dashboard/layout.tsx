@@ -133,8 +133,8 @@ export default function DashboardLayout({
                   heading: "Admin",
                   items: [
                     {
-                      href: "/dashboard/admin",
-                      label: "Platform admin",
+                      href: "/admin",
+                      label: "Admin console",
                       icon: <Shield size={18} strokeWidth={2} />,
                     },
                   ],
