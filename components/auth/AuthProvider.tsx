@@ -16,8 +16,8 @@ type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 interface AuthContextValue {
   user: AuthUser | null;
   status: AuthStatus;
-  login: (email: string, password: string) => Promise<void>;
-  register: (payload: RegisterInput) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  register: (payload: RegisterInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<AuthUser>) => void;
 }
@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await apiClient.login(email, password);
     setUser(data.user);
     setStatus("authenticated");
+    return data.user;
   }, []);
 
   const register = useCallback(async (payload: RegisterInput) => {
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await apiClient.login(payload.email, payload.password);
     setUser(data.user);
     setStatus("authenticated");
+    return data.user;
   }, []);
 
   const logout = useCallback(async () => {

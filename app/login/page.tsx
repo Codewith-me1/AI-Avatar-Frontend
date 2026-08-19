@@ -21,9 +21,13 @@ import { useAuth } from "@/components/auth/AuthProvider";
 
 type Mode = "login" | "register";
 
+// Super admins default to the admin console; everyone else to the app.
+const homeFor = (u?: { is_superuser?: boolean } | null) =>
+  u?.is_superuser ? "/admin" : "/dashboard";
+
 export default function LoginPage() {
   const router = useRouter();
-  const { login, register, status } = useAuth();
+  const { login, register, status, user } = useAuth();
 
   const [mode, setMode] = useState<Mode>("login");
   const [fullName, setFullName] = useState("");
@@ -33,10 +37,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // If already signed in, don't show the form.
+  // If already signed in, don't show the form — send them to their default home.
   useEffect(() => {
-    if (status === "authenticated") router.replace("/dashboard");
-  }, [status, router]);
+    if (status === "authenticated") router.replace(homeFor(user));
+  }, [status, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,16 +59,15 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      if (mode === "login") {
-        await login(email.trim(), password);
-      } else {
-        await register({
-          email: email.trim(),
-          password,
-          full_name: fullName.trim() || undefined,
-        });
-      }
-      router.replace("/dashboard");
+      const signedIn =
+        mode === "login"
+          ? await login(email.trim(), password)
+          : await register({
+              email: email.trim(),
+              password,
+              full_name: fullName.trim() || undefined,
+            });
+      router.replace(homeFor(signedIn));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       // Lockout / rate-limit messages carry the wait time — show them verbatim
