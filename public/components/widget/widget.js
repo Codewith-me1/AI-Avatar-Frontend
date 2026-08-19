@@ -2663,7 +2663,7 @@
       box-shadow: 0 14px 34px rgba(0,0,0,0.22);
       background: #11163a;
     }
-    .va-banner-card video { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .va-banner-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .va-banner-caption {
       position: absolute; left: 0; right: 0; bottom: 0;
       padding: 14px 14px 12px;

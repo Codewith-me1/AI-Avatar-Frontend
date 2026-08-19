@@ -47,6 +47,7 @@ const AUTH_PATHS = [
   "/api/auth/register",
   "/api/auth/me",
   "/api/auth/logout",
+  "/api/auth/google",
 ];
 
 class ApiClient {

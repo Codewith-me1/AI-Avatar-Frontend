@@ -20,6 +20,8 @@ interface AuthContextValue {
   register: (payload: RegisterInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<AuthUser>) => void;
+  /** Adopt a session established out-of-band (e.g. Google OAuth callback). */
+  adoptSession: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -103,9 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((u) => (u ? { ...u, ...patch } : u));
   }, []);
 
+  const adoptSession = useCallback((u: AuthUser) => {
+    setUser(u);
+    setStatus("authenticated");
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, status, login, register, logout, updateUser }}
+      value={{ user, status, login, register, logout, updateUser, adoptSession }}
     >
       {children}
     </AuthContext.Provider>
