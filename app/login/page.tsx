@@ -46,8 +46,10 @@ export default function LoginPage() {
       setError("Please enter your email and password.");
       return;
     }
-    if (mode === "register" && password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (mode === "register" && password.length < 10) {
+      setError(
+        "Password must be at least 10 characters, with an uppercase letter, a lowercase letter, and a digit.",
+      );
       return;
     }
 
@@ -65,19 +67,19 @@ export default function LoginPage() {
       router.replace("/dashboard");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
-      // Never echo raw server internals; keep messages user-safe.
-      if (mode === "login") {
+      // Lockout / rate-limit messages carry the wait time — show them verbatim
+      // so the operator doesn't retry into a longer lockout.
+      if (/too many|try again in|attempt/i.test(msg)) {
+        setError(msg);
+      } else if (mode === "login") {
         setError(
-          /invalid|401|unauthor|credential/i.test(msg)
+          /invalid|401|unauthor|credential|password/i.test(msg)
             ? "Invalid email or password."
-            : "Couldn't sign in. Please try again.",
+            : msg || "Couldn't sign in. Please try again.",
         );
       } else {
-        setError(
-          /exist|409|conflict|registered/i.test(msg)
-            ? "An account with this email already exists."
-            : "Couldn't create your account. Please try again.",
-        );
+        // Registration errors name the exact reason (policy, duplicate) — surface them.
+        setError(msg || "Couldn't create your account. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -242,7 +244,7 @@ export default function LoginPage() {
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "register" ? "At least 8 characters" : "••••••••"}
+                  placeholder={mode === "register" ? "At least 10 characters" : "••••••••"}
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   className="w-full! pl-10! pr-11! py-3! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all"
                 />

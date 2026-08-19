@@ -892,17 +892,32 @@ function ChangePassword() {
 
   const submit = async () => {
     setMsg(null);
-    if (next.length < 8) return setMsg({ ok: false, text: "New password must be at least 8 characters." });
+    // Mirror the server policy to avoid a round-trip: ≥10 chars, upper, lower, digit.
+    const problems: string[] = [];
+    if (next.length < 10) problems.push("be at least 10 characters");
+    if (!/[a-z]/.test(next)) problems.push("contain a lowercase letter");
+    if (!/[A-Z]/.test(next)) problems.push("contain an uppercase letter");
+    if (!/\d/.test(next)) problems.push("contain a digit");
+    if (problems.length)
+      return setMsg({ ok: false, text: `Password must ${problems.join("; ")}.` });
     if (next !== confirm) return setMsg({ ok: false, text: "New passwords don't match." });
     setBusy(true);
     try {
-      await apiClient.changePassword(cur, next);
-      setMsg({ ok: true, text: "Password changed. Other devices were signed out." });
+      const res = await apiClient.changePassword(cur, next);
+      const n = res?.other_sessions_revoked ?? 0;
+      setMsg({
+        ok: true,
+        text:
+          n > 0
+            ? `Password changed. ${n} other session${n === 1 ? "" : "s"} signed out.`
+            : "Password changed.",
+      });
       setCur(""); setNext(""); setConfirm("");
-      setTimeout(() => { setOpen(false); setMsg(null); }, 2500);
+      setTimeout(() => { setOpen(false); setMsg(null); }, 3000);
     } catch (e) {
       const m = e instanceof Error ? e.message : "";
-      setMsg({ ok: false, text: /current|incorrect|match|400|401/i.test(m) ? "Your current password is incorrect." : (m || "Couldn't change password.") });
+      // The server's detail names the exact reason — show it verbatim.
+      setMsg({ ok: false, text: m || "Couldn't change password." });
     } finally {
       setBusy(false);
     }
@@ -935,7 +950,7 @@ function ChangePassword() {
             <input type={show ? "text" : "password"} className={`${inp} pr-11!`} value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Current password" autoComplete="current-password" />
             <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-3! top-1/2 -translate-y-1/2 p-1! text-[var(--muted)] hover:text-[var(--violet-700)]">{show ? <EyeOff size={16} /> : <Eye size={16} />}</button>
           </div>
-          <input type={show ? "text" : "password"} className={inp} value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (min 8 chars)" autoComplete="new-password" />
+          <input type={show ? "text" : "password"} className={inp} value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (≥10 chars, upper, lower, digit)" autoComplete="new-password" />
           <input type={show ? "text" : "password"} className={inp} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" />
           {msg && (
             <div className={`flex items-center gap-2! text-[13px] rounded-xl px-3.5! py-2.5! ${msg.ok ? "text-emerald-700 bg-emerald-50 border border-emerald-100" : "text-rose-600 bg-rose-50 border border-rose-100"}`}>

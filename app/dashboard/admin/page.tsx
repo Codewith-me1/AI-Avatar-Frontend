@@ -19,6 +19,9 @@ import {
   LogOut,
   Coins,
   ChevronDown,
+  UserPlus,
+  Lock,
+  Wand2,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { relTime, fmtNumber, fmtDuration } from "@/lib/api/dashboard";
@@ -26,6 +29,8 @@ import {
   getOverview,
   getHealth,
   listUsers,
+  getUser,
+  createUser,
   updateUser,
   deleteUser,
   forceLogoutUser,
@@ -33,6 +38,7 @@ import {
   listConversations,
   listAudit,
   listTickets,
+  getTicket,
   updateTicket,
   replyTicket,
   type AdminUser,
@@ -196,6 +202,7 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
   const [suspended, setSuspended] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<AdminUser | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -224,6 +231,9 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
             <button key={o.l} onClick={() => setSuspended(o.v)} className={`px-2.5! py-1.5! rounded-lg text-[12px] font-medium transition-colors ${suspended === o.v ? "bg-[var(--violet-050)] text-[var(--violet-700)]" : "text-[var(--slate)] hover:text-[var(--ink)]"}`}>{o.l}</button>
           ))}
         </div>
+        <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-4! py-2.5! rounded-xl" style={{ background: "var(--grad)" }}>
+          <UserPlus size={15} /> New user
+        </button>
       </div>
       <div className="bg-white border border-[var(--line)] rounded-2xl shadow-[var(--shadow-sm)] overflow-hidden">
         {loading ? <Spinner /> : users.length === 0 ? <Empty text="No users." /> : (
@@ -267,7 +277,94 @@ function UsersTab({ currentUserId }: { currentUserId: string }) {
         )}
       </div>
       {sel && <UserModal user={sel} isSelf={sel.id === currentUserId} onClose={() => setSel(null)} onChanged={() => { setSel(null); load(); }} />}
+      {creating && <CreateUserModal onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load(); }} />}
     </div>
+  );
+}
+
+function genPassword(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const digit = "23456789";
+  const sym = "!@#$%*?";
+  const all = upper + lower + digit + sym;
+  const pick = (s: string) => s[Math.floor(Math.random() * s.length)];
+  let out = pick(upper) + pick(lower) + pick(digit) + pick(sym);
+  for (let i = 0; i < 10; i++) out += pick(all);
+  return out
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
+}
+
+function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [form, setForm] = useState({ email: "", full_name: "", password: "", credits_minutes: 100, is_superuser: false });
+  const [confirmAdmin, setConfirmAdmin] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const set = (k: string, v: string | number | boolean) => setForm((f) => ({ ...f, [k]: v }));
+
+  const create = async () => {
+    setErr(null);
+    if (form.is_superuser && !confirmAdmin) return setErr("Confirm granting full platform (super-admin) access.");
+    setBusy(true);
+    try {
+      await createUser({
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim() || undefined,
+        is_superuser: form.is_superuser,
+        credits_minutes: form.credits_minutes,
+      });
+      onCreated();
+    } catch (e) {
+      // Server detail lists every password-policy failure / duplicate — show verbatim.
+      setErr(e instanceof Error ? e.message : "Couldn't create the user.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Create user" onClose={onClose} wide footer={
+      <>
+        <button onClick={onClose} className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2.5! rounded-xl border border-[var(--line)] hover:bg-[var(--line-soft)]">Cancel</button>
+        <button onClick={create} disabled={busy || !form.email || !form.password} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-5! py-2.5! rounded-xl disabled:opacity-60" style={{ background: "var(--grad)" }}><UserPlus size={15} /> Create</button>
+      </>
+    }>
+      {err && <div className="flex items-center gap-2! text-[13px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3.5! py-2.5! mb-4!"><AlertCircle size={15} /> {err}</div>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+        <div className="sm:col-span-2">
+          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Email</label>
+          <input className={inp} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="new@example.com" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Full name</label>
+          <input className={inp} value={form.full_name} onChange={(e) => set("full_name", e.target.value)} placeholder="New Person" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Password</label>
+          <div className="flex items-center gap-2!">
+            <input className={`${inp} font-mono`} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="≥10 chars · upper · lower · digit" />
+            <button type="button" onClick={() => set("password", genPassword())} className="inline-flex items-center gap-1.5! shrink-0 text-[13px] font-semibold text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-3! py-2.5! rounded-xl hover:bg-[var(--violet-100)]"><Wand2 size={14} /> Generate</button>
+          </div>
+          <p className="text-[11.5px] text-[var(--muted)] mt-1.5!">Copy it now — the API never returns a password again.</p>
+        </div>
+        <div>
+          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Credits (min)</label>
+          <input type="number" className={inp} value={form.credits_minutes} onChange={(e) => set("credits_minutes", +e.target.value)} />
+        </div>
+      </div>
+      <label className="flex items-start gap-2.5! mt-4! p-3! rounded-xl border border-amber-100 bg-amber-50/60 cursor-pointer select-none">
+        <input type="checkbox" checked={form.is_superuser} onChange={(e) => { set("is_superuser", e.target.checked); if (!e.target.checked) setConfirmAdmin(false); }} className="mt-0.5! w-4! h-4! accent-amber-600" />
+        <span className="text-[12.5px] text-amber-800"><span className="font-semibold flex items-center gap-1!"><Lock size={12} /> Super-admin</span> Grants full platform access, including this admin console.</span>
+      </label>
+      {form.is_superuser && (
+        <label className="flex items-center gap-2! mt-2! text-[12.5px] text-[var(--slate)] cursor-pointer select-none">
+          <input type="checkbox" checked={confirmAdmin} onChange={(e) => setConfirmAdmin(e.target.checked)} className="w-4! h-4! accent-amber-600" />
+          Yes, I understand — create this account as a super-admin.
+        </label>
+      )}
+    </Modal>
   );
 }
 
@@ -277,6 +374,12 @@ function UserModal({ user, isSelf, onClose, onChanged }: { user: AdminUser; isSe
   const [confirmEmail, setConfirmEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [detail, setDetail] = useState<any>(null);
+
+  useEffect(() => {
+    getUser(user.id).then(setDetail).catch(() => setDetail(null));
+  }, [user.id]);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setErr(null);
@@ -299,6 +402,43 @@ function UserModal({ user, isSelf, onClose, onChanged }: { user: AdminUser; isSe
         <Info label="Created" value={user.created_at ? relTime(user.created_at) : "—"} />
         <Info label="Locked until" value={user.locked_until ? relTime(user.locked_until) : "—"} />
       </div>
+
+      {/* Drill-down: integrations, activity, and their agents */}
+      {detail && (
+        <div className="mb-5!">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3! mb-4! text-[13px]">
+            <Info label="Google" value={detail.user?.google_connected ? "Connected" : "—"} />
+            <Info label="Last login IP" value={detail.user?.last_login_ip || "—"} />
+            <Info label="Conversations" value={String(detail.stats?.conversations ?? 0)} />
+            <Info label="Login sessions" value={String(detail.stats?.active_login_sessions ?? 0)} />
+          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-2!">
+            Agents ({(detail.agents || []).length})
+          </p>
+          {(detail.agents || []).length === 0 ? (
+            <p className="text-[13px] text-[var(--muted)]">No agents.</p>
+          ) : (
+            <div className="space-y-1.5!">
+              {detail.agents.map(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (a: any) => (
+                  <div key={a.id} className="flex items-center gap-2! p-2.5! rounded-lg border border-[var(--line-soft)] text-[13px]">
+                    <span className={`w-1.5! h-1.5! rounded-full ${a.is_active ? "bg-emerald-500" : "bg-gray-300"}`} />
+                    <span className="font-medium text-[var(--ink)]">{a.name}</span>
+                    <span className="text-[var(--muted)] text-[12px]">{a.language}</span>
+                    {a.appointments_enabled && <Badge tone="text-blue-700 bg-blue-50 border-blue-100">Appts</Badge>}
+                    {a.website_url && (
+                      <a href={a.website_url} target="_blank" rel="noreferrer" className="ml-auto! text-[12px] text-[var(--violet-700)] hover:underline truncate max-w-[160px]!">
+                        {a.website_url}
+                      </a>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3!">
         {/* Suspend / activate */}
@@ -571,52 +711,155 @@ function TicketsTab() {
 }
 
 function TicketModal({ ticket, onClose, onChanged }: { ticket: AdminTicket; onClose: () => void; onChanged: () => void }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(ticket.status);
   const [priority, setPriority] = useState(ticket.priority);
+  const [assignee, setAssignee] = useState(ticket.assigned_to || "");
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [reply, setReply] = useState("");
   const [internal, setInternal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const load = useCallback(() => {
+    setLoading(true);
+    getTicket(ticket.id)
+      .then((t) => {
+        setD(t);
+        setStatus(t.status);
+        setPriority(t.priority);
+        setAssignee(t.assigned_to?.id || "");
+      })
+      .catch(() => setD(null))
+      .finally(() => setLoading(false));
+  }, [ticket.id]);
+  useEffect(load, [load]);
+  useEffect(() => {
+    // Assignee picker is populated from super-admins only.
+    listUsers({}).then((us) => setAdmins(us.filter((u) => u.is_superuser))).catch(() => setAdmins([]));
+  }, []);
+
   const saveMeta = async () => {
     setBusy(true); setErr(null);
-    try { await updateTicket(ticket.id, { status, priority }); onChanged(); } catch (e) { setErr(e instanceof Error ? e.message : "Failed."); setBusy(false); }
+    try {
+      await updateTicket(ticket.id, { status, priority, assigned_to: assignee || undefined });
+      load();
+      onChanged();
+    } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't update the ticket."); }
+    finally { setBusy(false); }
   };
   const send = async () => {
     if (!reply.trim()) return;
     setBusy(true); setErr(null);
-    try { await replyTicket(ticket.id, reply.trim(), internal); onChanged(); } catch (e) { setErr(e instanceof Error ? e.message : "Failed."); setBusy(false); }
+    try {
+      await replyTicket(ticket.id, reply.trim(), internal);
+      setReply("");
+      load();
+      onChanged();
+    } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't send the reply."); }
+    finally { setBusy(false); }
   };
+
+  const messages = d?.messages || [];
 
   return (
     <Modal title={`${ticket.reference} · ${ticket.subject}`} onClose={onClose} wide footer={
       <button onClick={onClose} className="text-[13px] font-semibold text-[var(--slate)] px-4! py-2.5! rounded-xl border border-[var(--line)] hover:bg-[var(--line-soft)]">Close</button>
     }>
       {err && <div className="flex items-center gap-2! text-[13px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3.5! py-2.5! mb-4!"><AlertCircle size={15} /> {err}</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3! mb-4!">
+
+      {/* Meta controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3! mb-3!">
         <div>
-          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Status</label>
+          <label className="block text-[12px] font-medium text-[var(--slate)] mb-1!">Status</label>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${inp} appearance-none`}>
             {["open", "in_progress", "waiting_user", "resolved", "closed"].map((s) => (<option key={s} value={s}>{s.replace("_", " ")}</option>))}
           </select>
         </div>
         <div>
-          <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Priority</label>
+          <label className="block text-[12px] font-medium text-[var(--slate)] mb-1!">Priority</label>
           <select value={priority} onChange={(e) => setPriority(e.target.value)} className={`${inp} appearance-none`}>
             {["low", "normal", "high", "urgent"].map((s) => (<option key={s} value={s}>{s}</option>))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[12px] font-medium text-[var(--slate)] mb-1!">Assignee</label>
+          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={`${inp} appearance-none`}>
+            <option value="">Unassigned</option>
+            {admins.map((a) => (<option key={a.id} value={a.id}>{a.email}</option>))}
           </select>
         </div>
       </div>
       <div className="flex justify-end mb-5!">
         <button disabled={busy} onClick={saveMeta} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-4! py-2! rounded-xl disabled:opacity-60" style={{ background: "var(--grad)" }}><CheckCircle2 size={14} /> Update</button>
       </div>
+
+      {/* Thread */}
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-2!">Conversation</p>
+      {loading ? (
+        <div className="py-6! grid place-items-center"><div className="w-6! h-6! border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" /></div>
+      ) : (
+        <div className="space-y-2.5! mb-5! max-h-72! overflow-y-auto">
+          {d?.body && (
+            <div className="p-3! rounded-xl border border-[var(--line)] bg-[var(--line-soft)]/40">
+              <p className="text-[11.5px] text-[var(--muted)] mb-1!">{d.requester?.email || "Customer"} · original request</p>
+              <p className="text-[13px] text-[var(--ink)] whitespace-pre-wrap">{d.body}</p>
+            </div>
+          )}
+          {messages.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (m: any) => (
+              <div
+                key={m.id}
+                className={`p-3! rounded-xl border ${
+                  m.internal
+                    ? "border-amber-200 bg-amber-50"
+                    : m.author_role === "admin"
+                      ? "border-[var(--violet-100)] bg-[var(--violet-050)]"
+                      : "border-[var(--line)] bg-white"
+                }`}
+              >
+                <p className="text-[11.5px] mb-1! flex items-center gap-1.5!">
+                  {m.internal && (
+                    <span className="inline-flex items-center gap-1! text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-1.5! py-0.5! rounded-full uppercase tracking-wide">
+                      <Lock size={9} /> Internal note
+                    </span>
+                  )}
+                  <span className="text-[var(--muted)]">
+                    {m.author_email || m.author_role} · {relTime(m.created_at)}
+                  </span>
+                </p>
+                <p className="text-[13px] text-[var(--ink)] whitespace-pre-wrap">{m.body}</p>
+              </div>
+            ),
+          )}
+          {messages.length === 0 && !d?.body && <p className="text-[13px] text-[var(--muted)]">No messages yet.</p>}
+        </div>
+      )}
+
+      {/* Composer */}
       <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">Reply</label>
-      <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} className={`${inp} resize-y`} placeholder="Write a reply to the customer…" />
-      <div className="flex items-center justify-between mt-3!">
-        <label className="flex items-center gap-2! text-[13px] text-[var(--slate)] cursor-pointer select-none">
-          <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} className="w-4! h-4! accent-[var(--violet)]" /> Internal note (not sent to customer)
-        </label>
-        <button disabled={busy || !reply.trim()} onClick={send} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-5! py-2.5! rounded-xl disabled:opacity-60" style={{ background: "var(--grad)" }}>Send reply</button>
+      <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={4} className={`${inp} resize-y`} placeholder={internal ? "Write an internal note (operators only)…" : "Write a reply to the customer…"} />
+      <div className="flex flex-wrap items-center justify-between gap-3! mt-3!">
+        <div className="flex items-center gap-3!">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={internal}
+            onClick={() => setInternal((v) => !v)}
+            className={`relative w-11! h-6! rounded-full transition-colors ${internal ? "bg-amber-500" : "bg-[var(--line)]"}`}
+          >
+            <span className={`absolute top-0.5! left-0.5! w-5! h-5! rounded-full bg-white shadow-sm transition-transform ${internal ? "translate-x-5" : ""}`} />
+          </button>
+          <span className={`text-[12.5px] font-medium flex items-center gap-1! ${internal ? "text-amber-700" : "text-emerald-700"}`}>
+            {internal ? (<><Lock size={12} /> Internal note — only operators see this</>) : (<><CheckCircle2 size={12} /> Public reply — the customer will see this</>)}
+          </span>
+        </div>
+        <button disabled={busy || !reply.trim()} onClick={send} className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-5! py-2.5! rounded-xl disabled:opacity-60" style={{ background: internal ? "linear-gradient(100deg,#f59e0b,#d97706)" : "var(--grad)" }}>
+          {internal ? "Add internal note" : "Send reply"}
+        </button>
       </div>
     </Modal>
   );

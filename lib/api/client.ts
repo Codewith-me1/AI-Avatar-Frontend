@@ -23,6 +23,25 @@ const BASE_URL =
 let accessToken: string | null = null;
 let authFailureHandler: (() => void) | null = null;
 
+// FastAPI returns `{ detail }` where detail is a string OR (on 422 validation)
+// an array of `{ loc, msg, ... }`. Render both shapes into one message.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractDetail(body: any): string | null {
+  if (!body) return null;
+  const d = body.detail ?? body.message;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) {
+    return (
+      d
+        .map((e) =>
+          typeof e === "string" ? e : e?.msg || JSON.stringify(e),
+        )
+        .join("; ") || null
+    );
+  }
+  return typeof body.message === "string" ? body.message : null;
+}
+
 const AUTH_PATHS = [
   "/api/auth/login",
   "/api/auth/register",
@@ -99,9 +118,9 @@ class ApiClient {
     }
 
     if (!res.ok) {
-      const detail = await res.json().catch(() => null);
+      const body = await res.json().catch(() => null);
       throw new Error(
-        (detail && (detail.detail || detail.message)) ??
+        extractDetail(body) ??
           `${init.method ?? "GET"} ${path} failed: ${res.status}`,
       );
     }
@@ -193,8 +212,14 @@ class ApiClient {
     }
   }
 
-  changePassword(current_password: string, new_password: string): Promise<unknown> {
-    return this.post("/api/auth/change-password", { current_password, new_password });
+  changePassword(
+    current_password: string,
+    new_password: string,
+  ): Promise<{ changed: boolean; other_sessions_revoked: number }> {
+    return this.post("/api/auth/change-password", {
+      current_password,
+      new_password,
+    });
   }
 
   listSessions(): Promise<UserSessionInfo[]> {

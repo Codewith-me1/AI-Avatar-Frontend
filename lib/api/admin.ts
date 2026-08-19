@@ -99,6 +99,13 @@ export const listUsers = (opts: { q?: string; suspended?: boolean } = {}) => {
 };
 export const getUser = (id: string) =>
   apiClient.get<Json>(`/api/admin/users/${encodeURIComponent(id)}`);
+export const createUser = (body: {
+  email: string;
+  password: string;
+  full_name?: string;
+  is_superuser?: boolean;
+  credits_minutes?: number;
+}) => apiClient.post<AdminUser>("/api/admin/users", body);
 export const updateUser = (id: string, body: AdminUserUpdate) =>
   apiClient.patch<AdminUser>(`/api/admin/users/${encodeURIComponent(id)}`, body);
 export const deleteUser = (id: string, confirmEmail: string) =>
@@ -133,6 +140,8 @@ export const listTickets = (opts: { status?: string; priority?: string } = {}) =
   const qs = p.toString();
   return apiClient.get<AdminTicket[]>(`/api/admin/tickets${qs ? `?${qs}` : ""}`);
 };
+export const getTicket = (id: string) =>
+  apiClient.get<Json>(`/api/admin/tickets/${encodeURIComponent(id)}`);
 export const updateTicket = (
   id: string,
   body: { status?: string; priority?: string; assigned_to?: string; resolution?: string },
