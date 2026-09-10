@@ -32,6 +32,12 @@
   --line: #ececf1;
   --line-soft: #f2f0f6;
 
+  /* Console shell (D-ID-style clean light) */
+  --sidebar: #f7f7f9;      /* neutral sidebar ground */
+  --sidebar-hover: #eeeef1;
+  --sidebar-active: #e9e9ee;
+  --ink-hover: #2b2536;    /* dark primary button hover */
+
   /* Radii & elevation */
   --r-sm: 10px;
   --r-md: 14px;
@@ -130,6 +136,36 @@ h1, h2, h3, h4, h5 {
   padding: 0.35rem 0.75rem;
   border-radius: var(--r-full);
 }
+
+/* Dark primary button (console CTAs: New agent, Create agent, Add knowledge) */
+.btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.btn-dark:hover { background: var(--ink-hover); }
+.btn-dark:active { transform: translateY(0.5px); }
+.btn-dark:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Clean console input */
+.fld {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.fld:focus { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet-100); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

@@ -20,7 +20,47 @@ const BASE_URL =
  * - Sessions are server-side, so there is NO refresh flow. On a 401 we drop the
  *   in-memory token and tell the app to sign out (the server can revoke instantly).
  */
-let accessToken: string | null = null;
+/**
+ * Session persistence — sessionStorage (most secure viable option)
+ * ────────────────────────────────────────────────────────────────
+ * The backend sets an HttpOnly `session_id` cookie, but that cookie is scoped to
+ * the API origin and is third-party from the frontend domain — many browsers
+ * block it, so it can't be relied on to survive a reload. To keep the user
+ * signed in we mirror the session_id into `sessionStorage` and restore it on
+ * boot into the in-memory Bearer token.
+ *
+ * Why sessionStorage over a cookie / localStorage:
+ *  - It is NEVER auto-sent with requests → no CSRF surface (we attach the Bearer
+ *    header explicitly ourselves).
+ *  - It is cleared when the tab closes → the token isn't left on disk, so the
+ *    XSS exposure window is far smaller than a persistent cookie or localStorage.
+ *  - It still survives reloads + in-tab navigation, which is the actual need.
+ * The HttpOnly server cookie remains the primary credential; this is the
+ * persistence fallback for cookie-blocked cross-site setups.
+ */
+const SESSION_KEY = "avat_session";
+
+function persistToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) window.sessionStorage.setItem(SESSION_KEY, token);
+    else window.sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* storage unavailable (private mode / disabled) — memory-only fallback */
+  }
+}
+
+function readPersistedToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Restore any persisted session before the first request runs.
+let accessToken: string | null = readPersistedToken();
 let authFailureHandler: (() => void) | null = null;
 
 // FastAPI returns `{ detail }` where detail is a string OR (on 422 validation)
@@ -66,9 +106,10 @@ class ApiClient {
     return this.defaultBaseUrl;
   }
 
-  // ── Token management (in-memory only) ───────────────────────────────────────
+  // ── Token management (in-memory + sessionStorage mirror) ────────────────────
   setAccessToken(token: string | null) {
     accessToken = token;
+    persistToken(token);
   }
   getAccessToken(): string | null {
     return accessToken;
@@ -76,6 +117,7 @@ class ApiClient {
   /** Legacy alias kept for callers that used setToken(). */
   setToken(token: string | null) {
     accessToken = token;
+    persistToken(token);
   }
   /** Registered by the AuthProvider so a failed refresh can force a sign-out. */
   setAuthFailureHandler(fn: (() => void) | null) {
@@ -114,6 +156,7 @@ class ApiClient {
     if (res.status === 401 && allowRetry && !this.isAuthPath(path)) {
       // Server-side sessions can be revoked instantly — nothing to refresh.
       accessToken = null;
+      persistToken(null);
       authFailureHandler?.();
       throw new Error("Unauthorized");
     }
@@ -172,6 +215,7 @@ class ApiClient {
       { allowRetry: false },
     );
     accessToken = data.session_id; // Bearer fallback for cookie-blocked setups
+    persistToken(data.session_id); // persist so a reload stays signed in
     return data;
   }
 
@@ -200,6 +244,7 @@ class ApiClient {
       /* best-effort */
     } finally {
       accessToken = null;
+      persistToken(null);
     }
   }
 
@@ -210,6 +255,7 @@ class ApiClient {
       /* best-effort */
     } finally {
       accessToken = null;
+      persistToken(null);
     }
   }
 

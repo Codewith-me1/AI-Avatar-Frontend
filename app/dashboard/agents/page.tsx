@@ -1,3611 +1,336 @@
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { motion } from "framer-motion";
-// import Link from "next/link";
-// import {
-//   Plus,
-//   Mic,
-//   Settings,
-//   Trash2,
-//   Shield,
-//   Info,
-//   Radio,
-//   Database,
-// } from "lucide-react";
-// import { useAgentStore } from "@/store";
-// import { apiClient } from "@/lib/api/client";
-// import type { Agent } from "@/types";
-
-// // Premium demo agents to display when the API is not active or empty
-// const DEMO_AGENTS: Agent[] = [
-//   {
-//     id: "demo-sarah",
-//     name: "Sarah (Customer Support)",
-//     slug: "sarah-support",
-//     description:
-//       "Empathetic customer success agent specialized in SaaS troubleshooting, billing questions, and onboarding.",
-//     system_prompt:
-//       "You are Sarah, a customer support agent. Be warm, professional, and clear.",
-//     language: "en-US",
-//     avatar_type: "waveform",
-//     llm_provider: "openai",
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: true,
-//   },
-//   {
-//     id: "demo-alex",
-//     name: "Alex (Tech Recruiter)",
-//     slug: "alex-recruiter",
-//     description:
-//       "Highly engaging interactive voice recruiter. Conducts technical screenings and schedules follow-up interviews.",
-//     system_prompt:
-//       "You are Alex, a tech recruiter. Be upbeat, ask screening questions, and assess skills.",
-//     language: "en-US",
-//     avatar_type: "readyplayerme",
-//     avatar_url: "https://models.readyplayer.me/64b58e72750e6878b6711a78.glb",
-//     llm_provider: "anthropic",
-//     llm_model: "claude-3-5-sonnet",
-//     is_public: true,
-//     is_active: true,
-//   },
-//   {
-//     id: "demo-elena",
-//     name: "Elena (Spanish Tutor)",
-//     slug: "elena-espanol",
-//     description:
-//       "Converse in natural Spanish. Adjusts vocabulary based on your speech and provides supportive corrections.",
-//     system_prompt:
-//       "You are Elena, a friendly Spanish tutor. Guide the user in learning conversational Spanish.",
-//     language: "es-ES",
-//     avatar_type: "waveform",
-//     llm_provider: "openai",
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: false,
-//   },
-// ];
-
-// export default function AgentsPage() {
-//   const { agents, setAgents, removeAgent, isLoading, setLoading } =
-//     useAgentStore();
-//   const [error, setError] = useState<string | null>(null);
-//   const [isDemoMode, setIsDemoMode] = useState(false);
-
-//   useEffect(() => {
-//     loadAgents();
-//   }, []);
-
-//   async function loadAgents() {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const data = await apiClient.get<Agent[]>("/api/agents/");
-//       if (data && data.length > 0) {
-//         setAgents(data);
-//         setIsDemoMode(false);
-//       } else {
-//         setAgents(DEMO_AGENTS);
-//         setIsDemoMode(true);
-//       }
-//     } catch (e) {
-//       console.warn(
-//         "Failed to load agents from API. Loading offline demo agents instead.",
-//         e,
-//       );
-//       setAgents(DEMO_AGENTS);
-//       setIsDemoMode(true);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   async function handleDelete(id: string) {
-//     if (!confirm("Are you sure you want to delete this voice agent?")) return;
-
-//     if (isDemoMode || id.startsWith("demo-")) {
-//       removeAgent(id);
-//       return;
-//     }
-
-//     try {
-//       await apiClient.delete(`/api/agents/${id}`);
-//       removeAgent(id);
-//     } catch (e) {
-//       setError("Failed to delete the agent from server");
-//     }
-//   }
-
-//   return (
-//     <div className="p-8 max-w-7xl mx-auto space-y-6">
-//       {/* Header section matching LiveAvatar style */}
-//       <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
-//         <div className="flex items-center gap-3">
-//           <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-//             Voice Agents ({agents.length})
-//           </h1>
-//           <a
-//             href="/api/agents"
-//             target="_blank"
-//             rel="noopener noreferrer"
-//             className="inline-flex items-center gap-1 px-2.5 py-1 bg-black text-[9px] font-black text-white rounded-md tracking-wider hover:opacity-90 transition-opacity"
-//           >
-//             GET /api/agents
-//             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block ml-0.5" />
-//           </a>
-//         </div>
-
-//         <div className="flex items-center gap-3">
-//           {isDemoMode && (
-//             <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold shadow-sm">
-//               <Info size={12} className="text-amber-600" />
-//               Demo mode fallback
-//             </div>
-//           )}
-//         </div>
-//       </div>
-
-//       {/* Connection error banner */}
-//       {error && (
-//         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-700 text-sm flex items-center gap-3 shadow-sm">
-//           <Shield size={16} className="text-red-500/80 flex-none" />
-//           <span>{error}</span>
-//         </div>
-//       )}
-
-//       {/* Loading state */}
-//       {isLoading && (
-//         <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
-//           <div className="w-10 h-10 border-4 border-[#424874] border-t-transparent rounded-full animate-spin" />
-//           <span className="text-sm font-semibold">
-//             Retrieving voice registry...
-//           </span>
-//         </div>
-//       )}
-
-//       {/* Agents grid */}
-//       {!isLoading && (
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-//           {/* First element is the Create New Card matching reference image */}
-//           <Link href="/dashboard/agents/new" className="block h-full">
-//             <motion.div
-//               whileHover={{ scale: 1.01, y: -2 }}
-//               className="border border-dashed border-slate-300 hover:border-[#A6B1E1] rounded-2xl p-6 flex flex-col items-center justify-center min-h-[240px] h-full bg-slate-50/10 hover:bg-slate-50/40 transition-all cursor-pointer group"
-//             >
-//               <div className="w-11 h-11 rounded-full border border-slate-200 bg-white flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#424874] group-hover:border-[#A6B1E1] transition-colors mb-3">
-//                 <Plus size={20} />
-//               </div>
-//               <span className="text-xs font-extrabold text-slate-600 group-hover:text-[#424874] transition-colors">
-//                 Create New
-//               </span>
-//             </motion.div>
-//           </Link>
-
-//           {/* Render existing agents list */}
-//           {agents.map((agent, i) => (
-//             <AgentCard
-//               key={agent.id}
-//               agent={agent}
-//               index={i}
-//               onDelete={() => handleDelete(agent.id)}
-//             />
-//           ))}
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// function AgentCard({
-//   agent,
-//   index,
-//   onDelete,
-// }: {
-//   agent: Agent;
-//   index: number;
-//   onDelete: () => void;
-// }) {
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 15 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ delay: index * 0.04 }}
-//       className="group relative bg-[#f8fafc]/30 hover:bg-white border border-slate-200/60 rounded-2xl p-6 transition-all duration-300 hover:border-[#A6B1E1]/40 shadow-sm hover:shadow-md flex flex-col justify-between min-h-[240px]"
-//     >
-//       <div>
-//         {/* Top Header Section */}
-//         <div className="flex justify-between items-start mb-5">
-//           <div className="space-y-1">
-//             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-//               Name
-//             </span>
-//             <h3 className="font-extrabold text-slate-800 text-sm group-hover:text-[#424874] transition-colors leading-snug">
-//               {agent.name}
-//             </h3>
-//           </div>
-
-//           <div className="flex items-center gap-1">
-//             <Link href={`/dashboard/agents/${agent.id}`}>
-//               <button
-//                 className="w-7 h-7 rounded-md bg-white hover:bg-slate-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-[#424874] transition-colors shadow-sm cursor-pointer"
-//                 title="Configure settings"
-//               >
-//                 <Settings size={13} />
-//               </button>
-//             </Link>
-//             <button
-//               onClick={onDelete}
-//               className="w-7 h-7 rounded-md bg-white hover:bg-red-50 border border-slate-200/50 flex items-center justify-center text-slate-400 hover:text-red-600 transition-colors shadow-sm cursor-pointer"
-//               title="Delete agent"
-//             >
-//               <Trash2 size={13} />
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Info Grid Section */}
-//         <div className="space-y-3.5 border-t border-slate-100 pt-4">
-//           <div>
-//             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-//               LLM Pipeline
-//             </span>
-//             <span className="text-xs font-semibold text-slate-700 block mt-0.5 capitalize">
-//               {agent.llm_provider} ({agent.llm_model})
-//             </span>
-//           </div>
-
-//           <div className="grid grid-cols-2 gap-4">
-//             <div>
-//               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-//                 Language
-//               </span>
-//               <span className="text-xs font-semibold text-slate-700 block mt-0.5">
-//                 {agent.language}
-//               </span>
-//             </div>
-//             <div>
-//               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
-//                 Status
-//               </span>
-//               <div className="flex items-center gap-1.5 mt-1">
-//                 <span
-//                   className={`w-1.5 h-1.5 rounded-full ${agent.is_active ? "bg-emerald-500 shadow-sm" : "bg-slate-300"}`}
-//                 />
-//                 <span className="text-xs font-bold text-slate-600">
-//                   {agent.is_active ? "Active" : "Idle"}
-//                 </span>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Action Footer */}
-//       <Link href={`/dashboard/agents/${agent.id}/test`} className="mt-5 block">
-//         <motion.button
-//           whileHover={{ scale: 1.01 }}
-//           whileTap={{ scale: 0.99 }}
-//           className="w-full py-2 bg-[#DCD6F7]/50 hover:bg-[#DCD6F7] text-[#424874] font-bold text-[11px] rounded-lg border border-[#A6B1E1]/10 shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-//         >
-//           <Mic size={11} />
-//           Test Speech Sandbox
-//         </motion.button>
-//       </Link>
-//     </motion.div>
-//   );
-// }
-
-// "use client";
-
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import { motion } from "framer-motion";
-// import { Check, ChevronLeft, User } from "lucide-react";
-// import { AVATAR_OPTIONS, type AvatarOption } from "@/components/avatar/Avatars";
-// import { apiClient } from "@/lib/api/client";
-
-// const LLM_MODELS = [
-//   { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-//   { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-//   {
-//     value: "claude-3-5-sonnet-20241022",
-//     label: "Claude 3.5 Sonnet",
-//     provider: "anthropic",
-//   },
-//   {
-//     value: "claude-3-5-haiku-20241022",
-//     label: "Claude 3.5 Haiku",
-//     provider: "anthropic",
-//   },
-// ];
-
-// export default function NewAgentPage() {
-//   const router = useRouter();
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [form, setForm] = useState({
-//     name: "",
-//     description: "",
-//     language: "en",
-//     voice_id: "",
-//     system_prompt:
-//       "You are a helpful voice assistant. Keep responses concise — under 3 sentences.",
-//     llm_model: "gpt-4o-mini",
-//     llm_provider: "openai",
-//     is_public: true,
-//     avatar_id: AVATAR_OPTIONS[0].id,
-//   });
-
-//   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-
-//   const handleModelChange = (value: string) => {
-//     const m = LLM_MODELS.find((m) => m.value === value);
-//     set("llm_model", value);
-//     if (m) set("llm_provider", m.provider);
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!form.name.trim()) {
-//       setError("Name is required.");
-//       return;
-//     }
-//     if (form.system_prompt.trim().length < 10) {
-//       setError("System prompt must be at least 10 characters.");
-//       return;
-//     }
-//     setSaving(true);
-//     setError(null);
-//     try {
-//       await apiClient.post("/api/agents/", form);
-//       router.push("/dashboard");
-//     } catch (e: any) {
-//       setError(e.message ?? "Failed to create agent");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   return (
-//     <div className="p-8 max-w-2xl mx-auto">
-//       <div className="flex items-center gap-3 mb-8">
-//         <button
-//           onClick={() => router.back()}
-//           className="text-white/40 hover:text-white transition-colors"
-//         >
-//           <ChevronLeft size={20} />
-//         </button>
-//         <div>
-//           <h1 className="text-2xl font-bold text-white">New Agent</h1>
-//           <p className="text-white/40 text-sm mt-0.5">
-//             Configure your AI voice agent
-//           </p>
-//         </div>
-//       </div>
-
-//       <div className="space-y-5">
-//         <Card title="Identity">
-//           <Field label="Name *">
-//             <input
-//               value={form.name}
-//               onChange={(e) => set("name", e.target.value)}
-//               placeholder="e.g. Support Bot"
-//               className={inp}
-//             />
-//           </Field>
-//           <Field label="Description">
-//             <input
-//               value={form.description}
-//               onChange={(e) => set("description", e.target.value)}
-//               placeholder="What does this agent do?"
-//               className={inp}
-//             />
-//           </Field>
-//         </Card>
-
-//         <Card title="System Prompt">
-//           <textarea
-//             value={form.system_prompt}
-//             onChange={(e) => set("system_prompt", e.target.value)}
-//             rows={5}
-//             className={`${inp} resize-none`}
-//           />
-//           <p className="text-xs text-white/30 mt-1.5">
-//             Keep it concise — agents respond in real-time voice.
-//           </p>
-//         </Card>
-
-//         <Card title="Avatar — LiveAvatar">
-//           <p className="text-xs text-white/40 mb-3">
-//             Select the human avatar that will appear to users. Rendered live via
-//             LiveAvatar in the LiveKit room.
-//           </p>
-//           <div className="grid grid-cols-3 gap-2">
-//             {AVATAR_OPTIONS.map((av) => (
-//               <AvatarCard
-//                 key={av.id}
-//                 avatar={av}
-//                 selected={form.avatar_id === av.id}
-//                 onClick={() => set("avatar_id", av.id)}
-//               />
-//             ))}
-//           </div>
-//         </Card>
-
-//         <Card title="Language Model">
-//           <div className="grid grid-cols-2 gap-2">
-//             {LLM_MODELS.map((m) => (
-//               <button
-//                 key={m.value}
-//                 type="button"
-//                 onClick={() => handleModelChange(m.value)}
-//                 className={`p-3 rounded-xl border text-left text-sm transition-all ${
-//                   form.llm_model === m.value
-//                     ? "border-violet-500/60 bg-violet-500/10 text-white"
-//                     : "border-white/10 bg-white/3 text-white/50 hover:bg-white/6"
-//                 }`}
-//               >
-//                 <div className="font-medium text-sm">{m.label}</div>
-//                 <div className="text-xs text-white/30 mt-0.5 capitalize">
-//                   {m.provider}
-//                 </div>
-//               </button>
-//             ))}
-//           </div>
-//         </Card>
-
-//         <Card title="Voice (optional)">
-//           <Field label="Cartesia Voice ID">
-//             <input
-//               value={form.voice_id}
-//               onChange={(e) => set("voice_id", e.target.value)}
-//               placeholder="Leave blank to use default"
-//               className={inp}
-//             />
-//           </Field>
-//           <p className="text-xs text-white/30 mt-1">
-//             Find IDs at{" "}
-//             <a
-//               href="https://play.cartesia.ai"
-//               target="_blank"
-//               rel="noreferrer"
-//               className="text-violet-400 hover:underline"
-//             >
-//               play.cartesia.ai
-//             </a>
-//           </p>
-//         </Card>
-
-//         {error && (
-//           <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
-//             {error}
-//           </div>
-//         )}
-
-//         <motion.button
-//           whileHover={{ scale: 1.01 }}
-//           whileTap={{ scale: 0.99 }}
-//           onClick={handleSubmit}
-//           disabled={saving}
-//           className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-medium transition-colors shadow-lg shadow-violet-600/20"
-//         >
-//           {saving ? "Creating…" : "Create Agent"}
-//         </motion.button>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function AvatarCard({
-//   avatar,
-//   selected,
-//   onClick,
-// }: {
-//   avatar: AvatarOption;
-//   selected: boolean;
-//   onClick: () => void;
-// }) {
-//   return (
-//     <motion.button
-//       type="button"
-//       whileHover={{ scale: 1.02 }}
-//       whileTap={{ scale: 0.97 }}
-//       onClick={onClick}
-//       className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
-//         selected
-//           ? "border-violet-500/60 bg-violet-500/10"
-//           : "border-white/8 bg-white/3 hover:bg-white/6"
-//       }`}
-//     >
-//       {selected && (
-//         <motion.div
-//           initial={{ scale: 0 }}
-//           animate={{ scale: 1 }}
-//           className="absolute top-2 right-2 w-4 h-4 rounded-full bg-violet-500 flex items-center justify-center"
-//         >
-//           <Check size={9} className="text-white" />
-//         </motion.div>
-//       )}
-//       <div
-//         className="w-12 h-12 rounded-xl flex items-center justify-center"
-//         style={{ background: avatar.previewGradient }}
-//       >
-//         <User size={20} className="text-white/60" />
-//       </div>
-//       <div className="text-center">
-//         <p className="text-xs font-semibold text-white">{avatar.name}</p>
-//         <p className="text-[9px] text-white/40 mt-0.5 capitalize">
-//           {avatar.style}
-//         </p>
-//       </div>
-//     </motion.button>
-//   );
-// }
-
-// function Card({
-//   title,
-//   children,
-// }: {
-//   title: string;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-//       <h2 className="text-sm font-semibold text-white/70 mb-4">{title}</h2>
-//       {children}
-//     </div>
-//   );
-// }
-// function Field({
-//   label,
-//   children,
-// }: {
-//   label: string;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="mb-3 last:mb-0">
-//       <label className="block text-xs text-white/40 mb-1.5">{label}</label>
-//       {children}
-//     </div>
-//   );
-// }
-// const inp =
-//   "w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-white/25 outline-none focus:border-violet-500/50 transition-colors";
-
-// Current Old
-// "use client";
-
-// import { useState } from "react";
-// import { useRouter } from "next/navigation";
-// import { motion } from "framer-motion";
-// import { Check, ChevronLeft, User, Sparkles, Cpu } from "lucide-react";
-// import { AVATAR_OPTIONS, type AvatarOption } from "@/components/avatar/Avatars";
-// import { apiClient } from "@/lib/api/client";
-
-// const LLM_MODELS = [
-//   { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-//   { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-//   {
-//     value: "claude-3-5-sonnet-20241022",
-//     label: "Claude 3.5 Sonnet",
-//     provider: "anthropic",
-//   },
-//   {
-//     value: "claude-3-5-haiku-20241022",
-//     label: "Claude 3.5 Haiku",
-//     provider: "anthropic",
-//   },
-// ];
-
-// export default function NewAgentPage() {
-//   const router = useRouter();
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [form, setForm] = useState({
-//     name: "",
-//     description: "",
-//     language: "en",
-//     voice_id: "",
-//     system_prompt:
-//       "You are a helpful voice assistant. Keep responses concise — under 3 sentences.",
-//     llm_model: "gpt-4o-mini",
-//     llm_provider: "openai",
-//     is_public: true,
-//     avatar_id: AVATAR_OPTIONS[0].id,
-//   });
-
-//   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-
-//   const handleModelChange = (value: string) => {
-//     const m = LLM_MODELS.find((m) => m.value === value);
-//     set("llm_model", value);
-//     if (m) set("llm_provider", m.provider);
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!form.name.trim()) {
-//       setError("Name is required.");
-//       return;
-//     }
-//     if (form.system_prompt.trim().length < 10) {
-//       setError("System prompt must be at least 10 characters.");
-//       return;
-//     }
-//     setSaving(true);
-//     setError(null);
-//     try {
-//       await apiClient.post("/api/agents/", form);
-//       router.push("/dashboard");
-//     } catch (e: any) {
-//       setError(e.message ?? "Failed to create agent");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   return (
-//     <div className="p-6 md:p-10 max-w-3xl mx-auto min-h-screen text-slate-200">
-//       {/* ── Header ──────────────────────────────────────────────────────── */}
-//       <div className="flex items-center gap-4 mb-10">
-//         <button
-//           onClick={() => router.back()}
-//           className="p-2 -ml-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all"
-//         >
-//           <ChevronLeft size={22} />
-//         </button>
-//         <div>
-//           <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
-//             Configure Agent
-//           </h1>
-//           <p className="text-white/50 text-sm mt-1">
-//             Design your AI's identity, brain, and appearance.
-//           </p>
-//         </div>
-//       </div>
-
-//       <div className="space-y-6">
-//         {/* ── Identity Card ──────────────────────────────────────────────── */}
-//         <Card
-//           title="Identity"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//             <Field label="Agent Name *">
-//               <input
-//                 value={form.name}
-//                 onChange={(e) => set("name", e.target.value)}
-//                 placeholder="e.g. Sales Assistant"
-//                 className={inp}
-//               />
-//             </Field>
-//             <Field label="Description (Internal)">
-//               <input
-//                 value={form.description}
-//                 onChange={(e) => set("description", e.target.value)}
-//                 placeholder="What is this agent's purpose?"
-//                 className={inp}
-//               />
-//             </Field>
-//           </div>
-//         </Card>
-
-//         {/* ── System Prompt Card ─────────────────────────────────────────── */}
-//         <Card
-//           title="System Prompt"
-//           icon={<Sparkles size={16} className="text-teal-400" />}
-//         >
-//           <textarea
-//             value={form.system_prompt}
-//             onChange={(e) => set("system_prompt", e.target.value)}
-//             rows={4}
-//             className={`${inp} resize-none leading-relaxed`}
-//           />
-//           <p className="text-xs text-white/40 mt-2 flex items-center gap-1.5">
-//             <span className="w-1.5 h-1.5 rounded-full bg-teal-500/50" />
-//             Keep it concise — Voice agents sound best with short, conversational
-//             responses.
-//           </p>
-//         </Card>
-
-//         {/* ── Avatar Card ────────────────────────────────────────────────── */}
-//         <Card
-//           title="LiveAvatar Interface"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           <p className="text-sm text-white/50 mb-4">
-//             Select the human avatar that will stream live to your users.
-//           </p>
-//           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-//             {AVATAR_OPTIONS.map((av) => (
-//               <AvatarCard
-//                 key={av.id}
-//                 avatar={av}
-//                 selected={form.avatar_id === av.id}
-//                 onClick={() => set("avatar_id", av.id)}
-//               />
-//             ))}
-//           </div>
-//         </Card>
-
-//         {/* ── LLM Card ───────────────────────────────────────────────────── */}
-//         <Card
-//           title="Language Engine"
-//           icon={<Cpu size={16} className="text-teal-400" />}
-//         >
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-//             {LLM_MODELS.map((m) => {
-//               const isSelected = form.llm_model === m.value;
-//               return (
-//                 <button
-//                   key={m.value}
-//                   type="button"
-//                   onClick={() => handleModelChange(m.value)}
-//                   className={`
-//                     relative flex flex-col p-4 rounded-xl border text-left transition-all overflow-hidden
-//                     ${
-//                       isSelected
-//                         ? "border-indigo-500/50 bg-indigo-500/10 shadow-sm"
-//                         : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//                     }
-//                   `}
-//                 >
-//                   <div
-//                     className={`font-medium text-sm ${isSelected ? "text-indigo-100" : "text-white/80"}`}
-//                   >
-//                     {m.label}
-//                   </div>
-//                   <div className="text-xs text-white/40 mt-1 capitalize tracking-wide">
-//                     {m.provider}
-//                   </div>
-//                   {isSelected && (
-//                     <motion.div
-//                       layoutId="activeModel"
-//                       className="absolute inset-0 border-2 border-indigo-500/50 rounded-xl pointer-events-none"
-//                       initial={false}
-//                       transition={{
-//                         type: "spring",
-//                         bounce: 0.2,
-//                         duration: 0.6,
-//                       }}
-//                     />
-//                   )}
-//                 </button>
-//               );
-//             })}
-//           </div>
-//         </Card>
-
-//         {/* ── Voice & Error ──────────────────────────────────────────────── */}
-//         <Card title="Voice Configuration">
-//           <Field label="Cartesia Voice ID (Optional)">
-//             <input
-//               value={form.voice_id}
-//               onChange={(e) => set("voice_id", e.target.value)}
-//               placeholder="Leave blank to use the avatar's default voice"
-//               className={inp}
-//             />
-//           </Field>
-//           <p className="text-xs text-white/40 mt-2">
-//             Find custom voice IDs at{" "}
-//             <a
-//               href="https://play.cartesia.ai"
-//               target="_blank"
-//               rel="noreferrer"
-//               className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
-//             >
-//               play.cartesia.ai
-//             </a>
-//           </p>
-//         </Card>
-
-//         {/* ── Submit Area ────────────────────────────────────────────────── */}
-//         <div className="pt-4 pb-12">
-//           {error && (
-//             <motion.div
-//               initial={{ opacity: 0, y: -10 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="px-4 py-3 mb-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2"
-//             >
-//               <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-//               {error}
-//             </motion.div>
-//           )}
-
-//           <motion.button
-//             whileHover={{ scale: 1.01 }}
-//             whileTap={{ scale: 0.99 }}
-//             onClick={handleSubmit}
-//             disabled={saving}
-//             className={`
-//               w-full py-4 rounded-xl text-white font-medium text-base transition-all
-//               shadow-lg flex items-center justify-center gap-2
-//               ${
-//                 saving
-//                   ? "bg-indigo-500/50 cursor-not-allowed"
-//                   : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25"
-//               }
-//             `}
-//           >
-//             {saving ? (
-//               <span className="flex items-center gap-2">
-//                 <motion.div
-//                   animate={{ rotate: 360 }}
-//                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-//                   className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-//                 />
-//                 Provisioning Agent…
-//               </span>
-//             ) : (
-//               "Create Agent"
-//             )}
-//           </motion.button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// // ── Components ─────────────────────────────────────────────────────────────
-
-// function AvatarCard({
-//   avatar,
-//   selected,
-//   onClick,
-// }: {
-//   avatar: AvatarOption;
-//   selected: boolean;
-//   onClick: () => void;
-// }) {
-//   return (
-//     <motion.button
-//       type="button"
-//       whileHover={{ scale: 1.02 }}
-//       whileTap={{ scale: 0.97 }}
-//       onClick={onClick}
-//       className={`relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all ${
-//         selected
-//           ? "border-indigo-500/60 bg-indigo-500/10 shadow-sm"
-//           : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//       }`}
-//     >
-//       {selected && (
-//         <motion.div
-//           initial={{ scale: 0 }}
-//           animate={{ scale: 1 }}
-//           className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shadow-sm"
-//         >
-//           <Check size={10} strokeWidth={3} className="text-white" />
-//         </motion.div>
-//       )}
-//       <div
-//         className="w-14 h-14 rounded-full flex items-center justify-center ring-2 ring-black/20 shadow-inner"
-//         style={{ background: avatar.previewGradient }}
-//       >
-//         <User size={22} className="text-white/60 drop-shadow-sm" />
-//       </div>
-//       <div className="text-center">
-//         <p
-//           className={`text-sm font-medium ${selected ? "text-indigo-100" : "text-white/90"}`}
-//         >
-//           {avatar.name}
-//         </p>
-//         <p className="text-[10px] text-white/40 mt-1 capitalize tracking-wider font-medium">
-//           {avatar.style}
-//         </p>
-//       </div>
-//     </motion.button>
-//   );
-// }
-
-// function Card({
-//   title,
-//   icon,
-//   children,
-// }: {
-//   title: string;
-//   icon?: React.ReactNode;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl">
-//       <div className="flex items-center gap-2 mb-5">
-//         {icon && <div className="p-1.5 rounded-lg bg-white/5">{icon}</div>}
-//         <h2 className="text-base font-medium text-white/90 tracking-wide">
-//           {title}
-//         </h2>
-//       </div>
-//       {children}
-//     </div>
-//   );
-// }
-
-// function Field({
-//   label,
-//   children,
-// }: {
-//   label: string;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="w-full">
-//       <label className="block text-xs font-medium text-white/60 mb-2 ml-1">
-//         {label}
-//       </label>
-//       {children}
-//     </div>
-//   );
-// }
-
-// // Global input styling string
-// const inp =
-//   "w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white text-sm placeholder-white/20 outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner";
-
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { motion, AnimatePresence } from "framer-motion";
-// import Link from "next/link";
-// import {
-//   Plus,
-//   Mic,
-//   Settings,
-//   Trash2,
-//   Shield,
-//   Info,
-//   ChevronLeft,
-//   User,
-//   Sparkles,
-//   Cpu,
-//   Check,
-// } from "lucide-react";
-// import { useAgentStore } from "@/store";
-// import { apiClient } from "@/lib/api/client";
-// import { AVATAR_OPTIONS, type AvatarOption } from "@/components/avatar/Avatars";
-// import type { Agent } from "@/types";
-
-// // ── Constants & Demos ────────────────────────────────────────────────────────
-
-// const DEMO_AGENTS: Agent[] = [
-//   {
-//     id: "demo-sarah",
-//     name: "Sarah (Customer Support)",
-//     slug: "sarah-support",
-//     description:
-//       "Empathetic customer success agent specialized in SaaS troubleshooting.",
-//     system_prompt:
-//       "You are Sarah, a customer support agent. Be warm, professional, and clear.",
-//     language: "en-US",
-//     avatar_type: "waveform",
-//     llm_provider: "openai",
-//     avatar_id: AVATAR_OPTIONS[0].id,
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: true,
-//   },
-//   {
-//     id: "demo-alex",
-//     name: "Alex (Tech Recruiter)",
-//     slug: "alex-recruiter",
-//     description:
-//       "Highly engaging interactive voice recruiter for technical screenings.",
-//     system_prompt:
-//       "You are Alex, a tech recruiter. Be upbeat and assess skills.",
-//     language: "en-US",
-//     avatar_type: "readyplayerme",
-//     avatar_url: "https://models.readyplayer.me/64b58e72750e6878b6711a78.glb",
-//     llm_provider: "anthropic",
-//     avatar_id: "12134",
-//     llm_model: "claude-3-5-sonnet",
-//     is_public: true,
-//     is_active: true,
-//   },
-// ];
-
-// const LLM_MODELS = [
-//   { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-//   { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-//   {
-//     value: "claude-3-5-sonnet-20241022",
-//     label: "Claude 3.5 Sonnet",
-//     provider: "anthropic",
-//   },
-//   {
-//     value: "claude-3-5-haiku-20241022",
-//     label: "Claude 3.5 Haiku",
-//     provider: "anthropic",
-//   },
-// ];
-
-// const inp =
-//   "w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white text-sm placeholder-white/20 outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner";
-
-// // ── Main Page Component ──────────────────────────────────────────────────────
-
-// export default function AgentsPage() {
-//   const { agents, setAgents, removeAgent, isLoading, setLoading } =
-//     useAgentStore();
-//   const [error, setError] = useState<string | null>(null);
-//   const [isDemoMode, setIsDemoMode] = useState(false);
-
-//   // View Controller: Toggles between Dashboard and Creation Form
-//   const [view, setView] = useState<"list" | "create">("list");
-
-//   useEffect(() => {
-//     loadAgents();
-//   }, []);
-
-//   async function loadAgents() {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const data = await apiClient.get<Agent[]>("/api/agents/");
-//       if (data && data.length > 0) {
-//         setAgents(data);
-//         setIsDemoMode(false);
-//       } else {
-//         setAgents(DEMO_AGENTS);
-//         setIsDemoMode(true);
-//       }
-//     } catch (e) {
-//       console.warn(
-//         "Failed to load agents from API. Loading offline demo agents instead.",
-//         e,
-//       );
-//       setAgents(DEMO_AGENTS);
-//       setIsDemoMode(true);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   async function handleDelete(id: string) {
-//     if (!confirm("Are you sure you want to delete this voice agent?")) return;
-//     if (isDemoMode || id.startsWith("demo-")) {
-//       removeAgent(id);
-//       return;
-//     }
-//     try {
-//       await apiClient.delete(`/api/agents/${id}`);
-//       removeAgent(id);
-//     } catch (e) {
-//       setError("Failed to delete the agent from server");
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-slate-950 text-slate-200">
-//       <AnimatePresence mode="wait">
-//         {view === "list" ? (
-//           <motion.div
-//             key="list-view"
-//             initial={{ opacity: 0, x: -20 }}
-//             animate={{ opacity: 1, x: 0 }}
-//             exit={{ opacity: 0, x: -20 }}
-//             transition={{ duration: 0.3 }}
-//             className="p-8 max-w-7xl mx-auto space-y-8"
-//           >
-//             {/* Header section */}
-//             <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-6">
-//               <div className="flex items-center gap-4">
-//                 <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
-//                   Voice Agents{" "}
-//                   <span className="text-white/30 ml-2">({agents.length})</span>
-//                 </h1>
-//               </div>
-//               {isDemoMode && (
-//                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
-//                   <Info size={14} /> Offline Demo Mode
-//                 </div>
-//               )}
-//             </div>
-
-//             {error && (
-//               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
-//                 <Shield size={16} className="text-red-500/80" />
-//                 <span>{error}</span>
-//               </div>
-//             )}
-
-//             {isLoading ? (
-//               <div className="flex flex-col items-center justify-center h-64 gap-4 text-white/40">
-//                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-//                 <span className="text-sm font-medium tracking-wide">
-//                   Connecting to registry...
-//                 </span>
-//               </div>
-//             ) : (
-//               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-//                 {/* Create New Card */}
-//                 <motion.div
-//                   whileHover={{ scale: 1.02, y: -2 }}
-//                   whileTap={{ scale: 0.98 }}
-//                   onClick={() => setView("create")}
-//                   className="group cursor-pointer border border-dashed border-white/20 hover:border-indigo-500/50 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[260px] h-full bg-white/[0.01] hover:bg-indigo-500/5 transition-all shadow-sm"
-//                 >
-//                   <div className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/40 group-hover:text-indigo-400 group-hover:border-indigo-500/30 group-hover:bg-indigo-500/10 transition-colors mb-4">
-//                     <Plus size={24} />
-//                   </div>
-//                   <span className="text-sm font-medium text-white/50 group-hover:text-indigo-300 transition-colors">
-//                     Create New Agent
-//                   </span>
-//                 </motion.div>
-
-//                 {/* Agent Grid */}
-//                 {agents.map((agent, i) => (
-//                   <AgentCard
-//                     key={agent.id}
-//                     agent={agent}
-//                     index={i}
-//                     onDelete={() => handleDelete(agent.id)}
-//                   />
-//                 ))}
-//               </div>
-//             )}
-//           </motion.div>
-//         ) : (
-//           <motion.div
-//             key="create-view"
-//             initial={{ opacity: 0, x: 20 }}
-//             animate={{ opacity: 1, x: 0 }}
-//             exit={{ opacity: 0, x: 20 }}
-//             transition={{ duration: 0.3 }}
-//             className="p-6 md:p-10 max-w-3xl mx-auto"
-//           >
-//             <CreateAgentView
-//               onBack={() => setView("list")}
-//               onSuccess={() => {
-//                 setView("list");
-//                 loadAgents(); // Refresh the grid to show the new agent
-//               }}
-//             />
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//     </div>
-//   );
-// }
-
-// // ── Dashboard Grid Components ────────────────────────────────────────────────
-
-// function AgentCard({
-//   agent,
-//   index,
-//   onDelete,
-// }: {
-//   agent: Agent;
-//   index: number;
-//   onDelete: () => void;
-// }) {
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 15 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ delay: index * 0.04 }}
-//       className="group relative bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:border-indigo-500/40 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col justify-between min-h-[260px]"
-//     >
-//       <div>
-//         <div className="flex justify-between items-start mb-5">
-//           <div className="space-y-1.5 pr-2">
-//             <h3 className="font-semibold text-white/90 text-lg group-hover:text-indigo-300 transition-colors leading-snug truncate">
-//               {agent.name}
-//             </h3>
-//             <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">
-//               {agent.description || "No description provided."}
-//             </p>
-//           </div>
-//           <div className="flex flex-col gap-1.5 shrink-0">
-//             <Link href={`/dashboard/agents/${agent.id}`}>
-//               <button className="w-8 h-8 rounded-lg bg-black/20 hover:bg-indigo-500/20 border border-white/5 flex items-center justify-center text-white/40 hover:text-indigo-300 transition-colors cursor-pointer">
-//                 <Settings size={14} />
-//               </button>
-//             </Link>
-//             <button
-//               onClick={onDelete}
-//               className="w-8 h-8 rounded-lg bg-black/20 hover:bg-red-500/20 border border-white/5 flex items-center justify-center text-white/40 hover:text-red-400 transition-colors cursor-pointer"
-//             >
-//               <Trash2 size={14} />
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="space-y-4 border-t border-white/10 pt-5">
-//           <div className="flex items-center justify-between">
-//             <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider block">
-//               Engine
-//             </span>
-//             <span className="text-xs font-medium text-indigo-200/70 block capitalize">
-//               {agent.llm_provider}
-//             </span>
-//           </div>
-//           <div className="flex items-center justify-between">
-//             <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider block">
-//               Status
-//             </span>
-//             <div className="flex items-center gap-1.5">
-//               <span
-//                 className={`w-1.5 h-1.5 rounded-full ${agent.is_active ? "bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]" : "bg-white/20"}`}
-//               />
-//               <span className="text-xs font-medium text-white/60">
-//                 {agent.is_active ? "Active" : "Idle"}
-//               </span>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       <Link href={`/dashboard/agents/${agent.id}/test`} className="mt-6 block">
-//         <motion.button
-//           whileHover={{ scale: 1.02 }}
-//           whileTap={{ scale: 0.98 }}
-//           className="w-full py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-medium text-xs rounded-xl border border-indigo-500/20 transition-colors cursor-pointer flex items-center justify-center gap-2"
-//         >
-//           <Mic size={14} />
-//           Launch Sandbox
-//         </motion.button>
-//       </Link>
-//     </motion.div>
-//   );
-// }
-
-// // ── Creation Form Component ──────────────────────────────────────────────────
-
-// function CreateAgentView({
-//   onBack,
-//   onSuccess,
-// }: {
-//   onBack: () => void;
-//   onSuccess: () => void;
-// }) {
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [form, setForm] = useState({
-//     name: "",
-//     description: "",
-//     language: "en",
-//     voice_id: "",
-//     system_prompt:
-//       "You are a helpful voice assistant. Keep responses concise — under 3 sentences.",
-//     llm_model: "gpt-4o-mini",
-//     llm_provider: "openai",
-//     is_public: true,
-//     avatar_id: AVATAR_OPTIONS[0].id,
-//   });
-
-//   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-
-//   const handleModelChange = (value: string) => {
-//     const m = LLM_MODELS.find((m) => m.value === value);
-//     set("llm_model", value);
-//     if (m) set("llm_provider", m.provider);
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!form.name.trim()) return setError("Agent name is required.");
-//     if (form.system_prompt.trim().length < 10)
-//       return setError("System prompt must be at least 10 characters.");
-
-//     setSaving(true);
-//     setError(null);
-//     try {
-//       await apiClient.post("/api/agents/", form);
-//       onSuccess(); // Switch back to grid view and refresh
-//     } catch (e: any) {
-//       setError(e.message ?? "Failed to create agent");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   return (
-//     <div className="w-full">
-//       <div className="flex items-center gap-4 mb-10">
-//         <button
-//           onClick={onBack}
-//           className="p-2 -ml-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all"
-//         >
-//           <ChevronLeft size={22} />
-//         </button>
-//         <div>
-//           <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
-//             Configure New Agent
-//           </h2>
-//           <p className="text-white/50 text-sm mt-1">
-//             Design your AI's identity, brain, and appearance.
-//           </p>
-//         </div>
-//       </div>
-
-//       <div className="space-y-6">
-//         <Card
-//           title="Identity"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//             <Field label="Agent Name *">
-//               <input
-//                 value={form.name}
-//                 onChange={(e) => set("name", e.target.value)}
-//                 placeholder="e.g. Sales Assistant"
-//                 className={inp}
-//               />
-//             </Field>
-//             <Field label="Description (Internal)">
-//               <input
-//                 value={form.description}
-//                 onChange={(e) => set("description", e.target.value)}
-//                 placeholder="What is this agent's purpose?"
-//                 className={inp}
-//               />
-//             </Field>
-//           </div>
-//         </Card>
-
-//         <Card
-//           title="System Prompt"
-//           icon={<Sparkles size={16} className="text-teal-400" />}
-//         >
-//           <textarea
-//             value={form.system_prompt}
-//             onChange={(e) => set("system_prompt", e.target.value)}
-//             rows={4}
-//             className={`${inp} resize-none leading-relaxed`}
-//           />
-//         </Card>
-
-//         <Card
-//           title="LiveAvatar Interface"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-//             {AVATAR_OPTIONS.map((av) => (
-//               <AvatarCard
-//                 key={av.id}
-//                 avatar={av}
-//                 selected={form.avatar_id === av.id}
-//                 onClick={() => set("avatar_id", av.id)}
-//               />
-//             ))}
-//           </div>
-//         </Card>
-
-//         <Card
-//           title="Language Engine"
-//           icon={<Cpu size={16} className="text-teal-400" />}
-//         >
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-//             {LLM_MODELS.map((m) => (
-//               <button
-//                 key={m.value}
-//                 type="button"
-//                 onClick={() => handleModelChange(m.value)}
-//                 className={`relative flex flex-col p-4 rounded-xl border text-left transition-all overflow-hidden ${
-//                   form.llm_model === m.value
-//                     ? "border-indigo-500/50 bg-indigo-500/10 shadow-sm"
-//                     : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//                 }`}
-//               >
-//                 <div
-//                   className={`font-medium text-sm ${form.llm_model === m.value ? "text-indigo-100" : "text-white/80"}`}
-//                 >
-//                   {m.label}
-//                 </div>
-//                 <div className="text-xs text-white/40 mt-1 capitalize tracking-wide">
-//                   {m.provider}
-//                 </div>
-//               </button>
-//             ))}
-//           </div>
-//         </Card>
-
-//         <div className="pt-4 pb-12">
-//           {error && (
-//             <motion.div
-//               initial={{ opacity: 0, y: -10 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="px-4 py-3 mb-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2"
-//             >
-//               <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />{" "}
-//               {error}
-//             </motion.div>
-//           )}
-
-//           <motion.button
-//             whileHover={{ scale: 1.01 }}
-//             whileTap={{ scale: 0.99 }}
-//             onClick={handleSubmit}
-//             disabled={saving}
-//             className={`w-full py-4 rounded-xl text-white font-medium text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
-//               saving
-//                 ? "bg-indigo-500/50 cursor-not-allowed"
-//                 : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25"
-//             }`}
-//           >
-//             {saving ? "Provisioning Agent..." : "Create Agent"}
-//           </motion.button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// // ── Shared UI Subcomponents ────────────────────────────────────────────────
-
-// function AvatarCard({
-//   avatar,
-//   selected,
-//   onClick,
-// }: {
-//   avatar: AvatarOption;
-//   selected: boolean;
-//   onClick: () => void;
-// }) {
-//   return (
-//     <motion.button
-//       type="button"
-//       whileHover={{ scale: 1.02 }}
-//       whileTap={{ scale: 0.97 }}
-//       onClick={onClick}
-//       className={`relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all ${
-//         selected
-//           ? "border-indigo-500/60 bg-indigo-500/10 shadow-sm"
-//           : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//       }`}
-//     >
-//       {selected && (
-//         <motion.div
-//           initial={{ scale: 0 }}
-//           animate={{ scale: 1 }}
-//           className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shadow-sm"
-//         >
-//           <Check size={10} strokeWidth={3} className="text-white" />
-//         </motion.div>
-//       )}
-//       <div
-//         className="w-14 h-14 rounded-full flex items-center justify-center ring-2 ring-black/20 shadow-inner"
-//         style={{ background: avatar.previewGradient }}
-//       >
-//         <User size={22} className="text-white/60 drop-shadow-sm" />
-//       </div>
-//       <div className="text-center">
-//         <p
-//           className={`text-sm font-medium ${selected ? "text-indigo-100" : "text-white/90"}`}
-//         >
-//           {avatar.name}
-//         </p>
-//         <p className="text-[10px] text-white/40 mt-1 capitalize tracking-wider font-medium">
-//           {avatar.style}
-//         </p>
-//       </div>
-//     </motion.button>
-//   );
-// }
-
-// function Card({
-//   title,
-//   icon,
-//   children,
-// }: {
-//   title: string;
-//   icon?: React.ReactNode;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl">
-//       <div className="flex items-center gap-2 mb-5">
-//         {icon && <div className="p-1.5 rounded-lg bg-white/5">{icon}</div>}
-//         <h2 className="text-base font-medium text-white/90 tracking-wide">
-//           {title}
-//         </h2>
-//       </div>
-//       {children}
-//     </div>
-//   );
-// }
-
-// function Field({
-//   label,
-//   children,
-// }: {
-//   label: string;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="w-full">
-//       <label className="block text-xs font-medium text-white/60 mb-2 ml-1">
-//         {label}
-//       </label>
-//       {children}
-//     </div>
-//   );
-// }
-
-// "use client";
-
-// import { useEffect, useState, useRef } from "react";
-// import { motion, AnimatePresence } from "framer-motion";
-// import Link from "next/link";
-// import {
-//   Plus,
-//   Mic,
-//   Settings,
-//   Trash2,
-//   Shield,
-//   Info,
-//   ChevronLeft,
-//   User,
-//   Sparkles,
-//   Cpu,
-//   Check,
-//   Volume2,
-//   VolumeX,
-//   Play,
-//   Pause,
-// } from "lucide-react";
-// import { useAgentStore } from "@/store";
-// import { apiClient } from "@/lib/api/client";
-// import { AVATAR_OPTIONS, type AvatarOption } from "@/components/avatar/Avatars";
-// import type { Agent } from "@/types";
-
-// // ── Constants & Demos ────────────────────────────────────────────────────────
-
-// const DEMO_AGENTS: Agent[] = [
-//   {
-//     id: "demo-sarah",
-//     name: "Sarah (Customer Support)",
-//     slug: "sarah-support",
-//     description:
-//       "Empathetic customer success agent specialized in SaaS troubleshooting.",
-//     system_prompt:
-//       "You are Sarah, a customer support agent. Be warm, professional, and clear.",
-//     language: "en-US",
-//     avatar_type: "waveform",
-//     llm_provider: "openai",
-//     avatar_id: "123",
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: true,
-//   },
-//   {
-//     id: "demo-alex",
-//     name: "Alex (Tech Recruiter)",
-//     slug: "alex-recruiter",
-//     description:
-//       "Highly engaging interactive voice recruiter for technical screenings.",
-//     system_prompt:
-//       "You are Alex, a tech recruiter. Be upbeat and assess skills.",
-//     language: "en-US",
-//     avatar_type: "readyplayerme",
-//     avatar_url: "https://models.readyplayer.me/64b58e72750e6878b6711a78.glb",
-//     llm_provider: "anthropic",
-//     avatar_id: "12134",
-//     llm_model: "claude-3-5-sonnet",
-//     is_public: true,
-//     is_active: true,
-//   },
-// ];
-
-// const LLM_MODELS = [
-//   { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-//   { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-//   {
-//     value: "claude-3-5-sonnet-20241022",
-//     label: "Claude 3.5 Sonnet",
-//     provider: "anthropic",
-//   },
-//   {
-//     value: "claude-3-5-haiku-20241022",
-//     label: "Claude 3.5 Haiku",
-//     provider: "anthropic",
-//   },
-// ];
-
-// // Production Cartesia Voice library with dynamic play previews
-// const CARTESIA_VOICES = [
-//   {
-//     id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
-//     name: "Daniel",
-//     description: "Deep, crisp, professional corporate American male",
-//     language: "en",
-//     gender: "Masculine",
-//     previewUrl: "./voice/daniel.wav",
-//   },
-//   {
-//     id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
-//     name: "Skylar",
-//     description: "Warm, empathetic conversational American female ",
-//     language: "en",
-//     gender: "Feminine",
-//     previewUrl: "./voice/sarah.wav",
-//   },
-//   {
-//     id: "95d51f79-c397-46f9-b49a-23763d3eaa2d",
-//     name: "Arushi",
-//     description:
-//       "Natural localized conversational English / Hindi hybrid speaker",
-//     language: "hi",
-//     gender: "Feminine",
-//     previewUrl: "./voice/arushi.wav",
-//   },
-
-//   {
-//     id: "62ae83ad-4f6a-430b-af41-a9bede9286ca",
-//     name: "British Reading Lady",
-//     description:
-//       "Elegant, authoritative Received Pronunciation (RP) storyteller",
-//     language: "en",
-//     gender: "Feminine",
-//     previewUrl: "./voice/british.wav",
-//   },
-//   {
-//     id: "79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e",
-//     name: "Theo",
-//     description:
-//       "Friendly, casual corporate support representative from Oceania",
-//     language: "en",
-//     gender: "Masculine",
-//     previewUrl: "./voice/theo.wav",
-//   },
-// ];
-
-// const inp =
-//   "w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white text-sm placeholder-white/20 outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-inner";
-
-// // ── Main Page Component ──────────────────────────────────────────────────────
-
-// export default function AgentsPage() {
-//   const { agents, setAgents, removeAgent, isLoading, setLoading } =
-//     useAgentStore();
-//   const [error, setError] = useState<string | null>(null);
-//   const [isDemoMode, setIsDemoMode] = useState(false);
-
-//   // View Controller: Toggles between Dashboard and Creation Form
-//   const [view, setView] = useState<"list" | "create">("list");
-
-//   useEffect(() => {
-//     loadAgents();
-//   }, []);
-
-//   async function loadAgents() {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const data = await apiClient.get<Agent[]>("/api/agents/");
-//       if (data && data.length > 0) {
-//         setAgents(data);
-//         setIsDemoMode(false);
-//       } else {
-//         setAgents(DEMO_AGENTS);
-//         setIsDemoMode(true);
-//       }
-//     } catch (e) {
-//       console.warn(
-//         "Failed to load agents from API. Loading offline demo agents instead.",
-//         e,
-//       );
-//       setAgents(DEMO_AGENTS);
-//       setIsDemoMode(true);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   async function handleDelete(id: string) {
-//     if (!confirm("Are you sure you want to delete this voice agent?")) return;
-//     if (isDemoMode || id.startsWith("demo-")) {
-//       removeAgent(id);
-//       return;
-//     }
-//     try {
-//       await apiClient.delete(`/api/agents/${id}`);
-//       removeAgent(id);
-//     } catch (e) {
-//       setError("Failed to delete the agent from server");
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-slate-950 text-slate-200">
-//       <AnimatePresence mode="wait">
-//         {view === "list" ? (
-//           <motion.div
-//             key="list-view"
-//             initial={{ opacity: 0, x: -20 }}
-//             animate={{ opacity: 1, x: 0 }}
-//             exit={{ opacity: 0, x: -20 }}
-//             transition={{ duration: 0.3 }}
-//             className="p-8 max-w-7xl mx-auto space-y-8"
-//           >
-//             {/* Header section */}
-//             <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-6">
-//               <div className="flex items-center gap-4">
-//                 <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
-//                   Voice Agents{" "}
-//                   <span className="text-white/30 ml-2">({agents.length})</span>
-//                 </h1>
-//               </div>
-//               {isDemoMode && (
-//                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
-//                   <Info size={14} /> Offline Demo Mode
-//                 </div>
-//               )}
-//             </div>
-
-//             {error && (
-//               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
-//                 <Shield size={16} className="text-red-500/80" />
-//                 <span>{error}</span>
-//               </div>
-//             )}
-
-//             {isLoading ? (
-//               <div className="flex flex-col items-center justify-center h-64 gap-4 text-white/40">
-//                 <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-//                 <span className="text-sm font-medium tracking-wide">
-//                   Connecting to registry...
-//                 </span>
-//               </div>
-//             ) : (
-//               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-//                 {/* Create New Card */}
-//                 <motion.div
-//                   whileHover={{ scale: 1.02, y: -2 }}
-//                   whileTap={{ scale: 0.98 }}
-//                   onClick={() => setView("create")}
-//                   className="group cursor-pointer border border-dashed border-white/20 hover:border-indigo-500/50 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[260px] h-full bg-white/[0.01] hover:bg-indigo-500/5 transition-all shadow-sm"
-//                 >
-//                   <div className="w-12 h-12 rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-white/40 group-hover:text-indigo-400 group-hover:border-indigo-500/30 group-hover:bg-indigo-500/10 transition-colors mb-4">
-//                     <Plus size={24} />
-//                   </div>
-//                   <span className="text-sm font-medium text-white/50 group-hover:text-indigo-300 transition-colors">
-//                     Create New Agent
-//                   </span>
-//                 </motion.div>
-
-//                 {/* Agent Grid */}
-//                 {agents.map((agent, i) => (
-//                   <AgentCard
-//                     key={agent.id}
-//                     agent={agent}
-//                     index={i}
-//                     onDelete={() => handleDelete(agent.id)}
-//                   />
-//                 ))}
-//               </div>
-//             )}
-//           </motion.div>
-//         ) : (
-//           <motion.div
-//             key="create-view"
-//             initial={{ opacity: 0, x: 20 }}
-//             animate={{ opacity: 1, x: 0 }}
-//             exit={{ opacity: 0, x: 20 }}
-//             transition={{ duration: 0.3 }}
-//             className="p-6 md:p-10 max-w-3xl mx-auto"
-//           >
-//             <CreateAgentView
-//               onBack={() => setView("list")}
-//               onSuccess={() => {
-//                 setView("list");
-//                 loadAgents();
-//               }}
-//             />
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//     </div>
-//   );
-// }
-
-// // ── Dashboard Grid Components ────────────────────────────────────────────────
-
-// function AgentCard({
-//   agent,
-//   index,
-//   onDelete,
-// }: {
-//   agent: Agent;
-//   index: number;
-//   onDelete: () => void;
-// }) {
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 15 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ delay: index * 0.04 }}
-//       className="group relative bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:border-indigo-500/40 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 flex flex-col justify-between min-h-[260px]"
-//     >
-//       <div>
-//         <div className="flex justify-between items-start mb-5">
-//           <div className="space-y-1.5 pr-2">
-//             <h3 className="font-semibold text-white/90 text-lg group-hover:text-indigo-300 transition-colors leading-snug truncate">
-//               {agent.name}
-//             </h3>
-//             <p className="text-xs text-white/40 line-clamp-2 leading-relaxed">
-//               {agent.description || "No description provided."}
-//             </p>
-//           </div>
-//           <div className="flex flex-col gap-1.5 shrink-0">
-//             <Link href={`/dashboard/agents/${agent.id}`}>
-//               <button className="w-8 h-8 rounded-lg bg-black/20 hover:bg-indigo-500/20 border border-white/5 flex items-center justify-center text-white/40 hover:text-indigo-300 transition-colors cursor-pointer">
-//                 <Settings size={14} />
-//               </button>
-//             </Link>
-//             <button
-//               onClick={onDelete}
-//               className="w-8 h-8 rounded-lg bg-black/20 hover:bg-red-500/20 border border-white/5 flex items-center justify-center text-white/40 hover:text-red-400 transition-colors cursor-pointer"
-//             >
-//               <Trash2 size={14} />
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="space-y-4 border-t border-white/10 pt-5">
-//           <div className="flex items-center justify-between">
-//             <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider block">
-//               Engine
-//             </span>
-//             <span className="text-xs font-medium text-indigo-200/70 block capitalize">
-//               {agent.llm_provider}
-//             </span>
-//           </div>
-//           <div className="flex items-center justify-between">
-//             <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider block">
-//               Status
-//             </span>
-//             <div className="flex items-center gap-1.5">
-//               <span
-//                 className={`w-1.5 h-1.5 rounded-full ${agent.is_active ? "bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]" : "bg-white/20"}`}
-//               />
-//               <span className="text-xs font-medium text-white/60">
-//                 {agent.is_active ? "Active" : "Idle"}
-//               </span>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       <Link href={`/dashboard/agents/${agent.id}/test`} className="mt-6 block">
-//         <motion.button
-//           whileHover={{ scale: 1.02 }}
-//           whileTap={{ scale: 0.98 }}
-//           className="w-full py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-medium text-xs rounded-xl border border-indigo-500/20 transition-colors cursor-pointer flex items-center justify-center gap-2"
-//         >
-//           <Mic size={14} />
-//           Launch Sandbox
-//         </motion.button>
-//       </Link>
-//     </motion.div>
-//   );
-// }
-
-// // ── Creation Form Component ──────────────────────────────────────────────────
-// function CreateAgentView({
-//   onBack,
-//   onSuccess,
-// }: {
-//   onBack: () => void;
-//   onSuccess: () => void;
-// }) {
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   // Dynamic arrays from Python Server endpoints
-
-//   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
-
-//   // Asynchronous Loading Flags
-//   const [loadingAvatars, setLoadingAvatars] = useState(true);
-//   const [form, setForm] = useState({
-//     name: "",
-//     description: "",
-//     language: "en",
-//     voice_id: "",
-//     system_prompt:
-//       "You are a helpful voice assistant. Keep responses concise — under 3 sentences.",
-//     llm_model: "gpt-4o",
-//     llm_provider: "openai",
-//     is_public: true,
-//     avatar_id: "",
-//   });
-//   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-//   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-//   // Initialize unified data fetch handlers across both resource sets
-//   useEffect(() => {
-//     async function initFormData() {
-//       // 1. Fetch Cartesia Voices List Matrix
-
-//       // 2. Fetch LiveAvatar Data List
-//       try {
-//         setLoadingAvatars(true);
-//         const avatarResponse = await apiClient.get<any>("/api/avatars");
-//         const avatarData =
-//           avatarResponse?.data?.results ?? avatarResponse?.data ?? [];
-//         console.log("Fetched avatars:", avatarData);
-
-//         if (avatarData && avatarData.length > 0) {
-//           setAvatars(avatarData);
-//           console.log("Setting avatars:", avatarData);
-//           setForm((f) => {
-//             const updated = {
-//               ...f,
-//               avatar_id: avatarData[0].id,
-//               previewUrl: avatarData[0].preview_url || "",
-//             };
-
-//             return updated;
-//           });
-//         }
-//         console.log("Initial Form:", avatars);
-//       } catch (err) {
-//         console.error("Failed to load avatars:", err);
-//       } finally {
-//         setLoadingAvatars(false);
-//       }
-//     }
-
-//     initFormData();
-
-//     return () => {
-//       if (audioRef.current) {
-//         audioRef.current.pause();
-//         audioRef.current = null;
-//       }
-//     };
-//   }, []);
-
-//   const set = (k: string, v: any) => {
-//     setForm((prev) => {
-//       const updated = {
-//         ...prev,
-//         [k]: v,
-//       };
-
-//       console.log("Form Updated:", updated);
-
-//       return updated;
-//     });
-//   };
-//   const handleTogglePreview = (
-//     e: React.MouseEvent,
-//     voiceId: string,
-//     url: string,
-//   ) => {
-//     e.stopPropagation(); // Avoid choosing the selector block card automatically upon clicking audio playback
-
-//     if (playingVoiceId === voiceId) {
-//       audioRef.current?.pause();
-//       setPlayingVoiceId(null);
-//     } else {
-//       if (audioRef.current) {
-//         audioRef.current.pause();
-//       }
-//       audioRef.current = new Audio(url);
-//       setPlayingVoiceId(voiceId);
-//       audioRef.current.play().catch((err) => {
-//         console.error("Audio preview blocked or failed:", err);
-//         setPlayingVoiceId(null);
-//       });
-
-//       audioRef.current.onended = () => {
-//         setPlayingVoiceId(null);
-//       };
-//     }
-//   };
-
-//   const handleModelChange = (value: string) => {
-//     const m = LLM_MODELS.find((m) => m.value === value);
-//     set("llm_model", value);
-//     if (m) set("llm_provider", m.provider);
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!form.name.trim()) return setError("Agent name is required.");
-//     if (!form.avatar_id)
-//       return setError("An avatar layout shell must be assigned.");
-//     if (form.system_prompt.trim().length < 10)
-//       return setError("System prompt must be at least 10 characters.");
-
-//     setSaving(true);
-//     setError(null);
-//     try {
-//       await apiClient.post("/api/agents/", form);
-//       onSuccess();
-//     } catch (e: any) {
-//       setError(e.message ?? "Failed to create agent");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   return (
-//     <div className="w-full">
-//       <div className="flex items-center gap-4 mb-10">
-//         <button
-//           onClick={onBack}
-//           className="p-2 -ml-2 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all"
-//         >
-//           <ChevronLeft size={22} />
-//         </button>
-//         <div>
-//           <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
-//             Configure New Agent
-//           </h2>
-//           <p className="text-white/50 text-sm mt-1">
-//             Design your AI's identity, brain, and appearance.
-//           </p>
-//         </div>
-//       </div>
-
-//       <div className="space-y-6">
-//         <Card
-//           title="Identity"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-//             <Field label="Agent Name *">
-//               <input
-//                 value={form.name}
-//                 onChange={(e) => set("name", e.target.value)}
-//                 placeholder="e.g. Sales Assistant"
-//                 className={inp}
-//               />
-//             </Field>
-//             <Field label="Description (Internal)">
-//               <input
-//                 value={form.description}
-//                 onChange={(e) => set("description", e.target.value)}
-//                 placeholder="What is this agent's purpose?"
-//                 className={inp}
-//               />
-//             </Field>
-//           </div>
-//         </Card>
-
-//         <Card
-//           title="System Prompt"
-//           icon={<Sparkles size={16} className="text-teal-400" />}
-//         >
-//           <textarea
-//             value={form.system_prompt}
-//             onChange={(e) => set("system_prompt", e.target.value)}
-//             rows={4}
-//             className={`${inp} resize-none leading-relaxed`}
-//           />
-//         </Card>
-
-//         {/* ── Dynamic LiveAvatar Interface List ──────────────── */}
-//         <Card
-//           title="LiveAvatar Selection Panel"
-//           icon={<User size={16} className="text-indigo-400" />}
-//         >
-//           {loadingAvatars ? (
-//             <div className="flex flex-col items-center justify-center py-8 gap-3 text-white/30">
-//               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-//               <p className="text-xs tracking-wide">
-//                 Syncing available digital human interfaces...
-//               </p>
-//             </div>
-//           ) : (
-//             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-//               {avatars.map((av) => (
-//                 <AvatarCard
-//                   key={av.id}
-//                   avatar={av}
-//                   previewUrl={av.preview_url}
-//                   selected={form.avatar_id === av.id}
-//                   onClick={() => set("avatar_id", av.id)}
-//                 />
-//               ))}
-//             </div>
-//           )}
-//         </Card>
-
-//         <Card
-//           title="Language Engine"
-//           icon={<Cpu size={16} className="text-teal-400" />}
-//         >
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-//             {LLM_MODELS.map((m) => (
-//               <button
-//                 key={m.value}
-//                 type="button"
-//                 onClick={() => handleModelChange(m.value)}
-//                 className={`relative flex flex-col p-4 rounded-xl border text-left transition-all overflow-hidden ${
-//                   form.llm_model === m.value
-//                     ? "border-indigo-500/50 bg-indigo-500/10 shadow-sm"
-//                     : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//                 }`}
-//               >
-//                 <div
-//                   className={`font-medium text-sm ${form.llm_model === m.value ? "text-indigo-100" : "text-white/80"}`}
-//                 >
-//                   {m.label}
-//                 </div>
-//                 <div className="text-xs text-white/40 mt-1 capitalize tracking-wide">
-//                   {m.provider}
-//                 </div>
-//               </button>
-//             ))}
-//           </div>
-//         </Card>
-
-//         <Card
-//           title="Vocal Timbre (Cartesia Sonic Engine)"
-//           icon={<Volume2 size={16} className="text-indigo-400" />}
-//         >
-//           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-//             {CARTESIA_VOICES.map((voice) => {
-//               const isSelected = form.voice_id === voice.id;
-//               const isPlaying = playingVoiceId === voice.id;
-
-//               return (
-//                 <div
-//                   key={voice.id}
-//                   onClick={() => set("voice_id", voice.id)}
-//                   className={`group relative flex items-center justify-between p-4 rounded-xl border text-left transition-all cursor-pointer ${
-//                     isSelected
-//                       ? "border-indigo-500/60 bg-indigo-500/10 shadow-sm"
-//                       : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//                   }`}
-//                 >
-//                   <div className="flex items-center gap-3.5 max-w-[80%]">
-//                     {/* Continuous Play/Pause Trigger Button */}
-//                     <button
-//                       type="button"
-//                       onClick={(e) =>
-//                         handleTogglePreview(e, voice.id, voice.previewUrl)
-//                       }
-//                       className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all shrink-0 ${
-//                         isPlaying
-//                           ? "bg-indigo-500 border-indigo-400 text-white animate-pulse"
-//                           : "bg-white/5 border-white/10 text-white/60 group-hover:text-white group-hover:border-white/20"
-//                       }`}
-//                     >
-//                       {isPlaying ? (
-//                         <Pause size={13} fill="currentColor" />
-//                       ) : (
-//                         <Play
-//                           size={13}
-//                           fill="currentColor"
-//                           className="ml-0.5"
-//                         />
-//                       )}
-//                     </button>
-
-//                     <div className="truncate">
-//                       <div className="flex items-center gap-2">
-//                         <span
-//                           className={`font-medium text-sm ${isSelected ? "text-indigo-100" : "text-white/80"}`}
-//                         >
-//                           {voice.name}
-//                         </span>
-//                         <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-white/40 uppercase tracking-wider">
-//                           {voice.language}
-//                         </span>
-//                       </div>
-//                       <p className="text-xs text-white/40 mt-0.5 truncate leading-relaxed">
-//                         {voice.description}
-//                       </p>
-//                     </div>
-//                   </div>
-
-//                   {/* Indicator Checkbox icon element */}
-//                   <div
-//                     className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-//                       isSelected
-//                         ? "bg-indigo-500 border-indigo-400 text-white"
-//                         : "border-white/20 bg-black/20"
-//                     }`}
-//                   >
-//                     {isSelected && <Check size={10} strokeWidth={4} />}
-//                   </div>
-//                 </div>
-//               );
-//             })}
-//           </div>
-//         </Card>
-
-//         <div className="pt-4 pb-12">
-//           {error && (
-//             <motion.div
-//               initial={{ opacity: 0, y: -10 }}
-//               animate={{ opacity: 1, y: 0 }}
-//               className="px-4 py-3 mb-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-2"
-//             >
-//               <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />{" "}
-//               {error}
-//             </motion.div>
-//           )}
-
-//           <motion.button
-//             whileHover={{ scale: 1.01 }}
-//             whileTap={{ scale: 0.99 }}
-//             onClick={handleSubmit}
-//             disabled={saving || loadingAvatars}
-//             className={`w-full py-4 rounded-xl text-white font-medium text-base transition-all shadow-lg flex items-center justify-center gap-2 ${
-//               saving || loadingAvatars
-//                 ? "bg-indigo-500/50 cursor-not-allowed"
-//                 : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25"
-//             }`}
-//           >
-//             {saving ? "Provisioning Agent..." : "Create Agent"}
-//           </motion.button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function AvatarCard({
-//   avatar,
-//   selected,
-//   onClick,
-//   previewUrl,
-// }: {
-//   avatar: AvatarOption;
-//   selected: boolean;
-//   onClick: () => void;
-//   previewUrl: string | undefined;
-// }) {
-//   return (
-//     <motion.button
-//       type="button"
-//       whileHover={{ scale: 1.02 }}
-//       whileTap={{ scale: 0.97 }}
-//       onClick={onClick}
-//       className={`relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all ${
-//         selected
-//           ? "border-indigo-500/60 bg-indigo-500/10 shadow-sm"
-//           : "border-white/10 bg-black/20 hover:bg-white/5 hover:border-white/20"
-//       }`}
-//     >
-//       {selected && (
-//         <motion.div
-//           initial={{ scale: 0 }}
-//           animate={{ scale: 1 }}
-//           className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shadow-sm"
-//         >
-//           <Check size={10} strokeWidth={3} className="text-white" />
-//         </motion.div>
-//       )}
-//       <div
-//         className=" rounded-full flex items-center justify-center ring-2 ring-black/20 shadow-inner"
-//         style={{ background: avatar.previewGradient }}
-//       >
-//         <img
-//           src={previewUrl}
-//           alt={avatar.name}
-//           className="w-full h-full rounded-full object-cover"
-//           onError={(e) => {
-//             console.log("Avatar image failed:", avatar);
-
-//             e.currentTarget.src =
-//               "https://ui-avatars.com/api/?name=" +
-//               encodeURIComponent(avatar.name || "Avatar");
-//           }}
-//         />
-//       </div>
-//       <div className="text-center">
-//         <p
-//           className={`text-sm font-medium ${selected ? "text-indigo-100" : "text-white/90"}`}
-//         >
-//           {avatar.name}
-//         </p>
-//         <p className="text-[10px] text-white/40 mt-1 capitalize tracking-wider font-medium">
-//           {avatar.style}
-//         </p>
-//       </div>
-//     </motion.button>
-//   );
-// }
-
-// function Card({
-//   title,
-//   icon,
-//   children,
-// }: {
-//   title: string;
-//   icon?: React.ReactNode;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl">
-//       <div className="flex items-center gap-2 mb-5">
-//         {icon && <div className="p-1.5 rounded-lg bg-white/5">{icon}</div>}
-//         <h2 className="text-base font-medium text-white/90 tracking-wide">
-//           {title}
-//         </h2>
-//       </div>
-//       {children}
-//     </div>
-//   );
-// }
-
-// function Field({
-//   label,
-//   children,
-// }: {
-//   label: string;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="w-full">
-//       <label className="block text-xs font-medium text-white/60 mb-2 ml-1">
-//         {label}
-//       </label>
-//       {children}
-//     </div>
-//   );
-// }
-
-// Current Old
-
-// "use client";
-
-// import { useEffect, useState, useRef } from "react";
-// import { motion, AnimatePresence } from "framer-motion";
-// import Link from "next/link";
-// import {
-//   Plus,
-//   Mic,
-//   Settings,
-//   Trash2,
-//   Shield,
-//   Info,
-//   ChevronLeft,
-//   User,
-//   Check,
-//   Volume2,
-//   Play,
-//   Pause,
-//   ExternalLink,
-//   Code,
-//   Save,
-//   Copy,
-//   ChevronDown,
-//   Sparkles,
-// } from "lucide-react";
-// import { useAgentStore } from "@/store";
-// import { apiClient } from "@/lib/api/client";
-// import { AvatarOption } from "@/components/avatar/Avatars";
-// import type { Agent } from "@/types";
-
-// // ── Constants & Demos ────────────────────────────────────────────────────────
-
-// const DEMO_AGENTS: Agent[] = [
-//   {
-//     id: "demo-sarah",
-//     name: "Welcome to LiveAvatar",
-//     slug: "sarah-support",
-//     description:
-//       "Empathetic customer success agent specialized in SaaS troubleshooting.",
-//     system_prompt:
-//       "You are Sarah, a customer support agent. Be warm, professional, and clear.",
-//     language: "en-US",
-//     avatar_type: "waveform",
-//     llm_provider: "openai",
-//     avatar_id: "123",
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: true,
-//   },
-//   {
-//     id: "demo-alex",
-//     name: "Customer Support",
-//     slug: "alex-recruiter",
-//     description:
-//       "Highly engaging interactive voice recruiter for technical screenings.",
-//     system_prompt:
-//       "You are Alex, a tech recruiter. Be upbeat and assess skills.",
-//     language: "en-US",
-//     avatar_type: "readyplayerme",
-//     avatar_url: "https://models.readyplayer.me/64b58e72750e6878b6711a78.glb",
-//     llm_provider: "anthropic",
-//     avatar_id: "12134",
-//     llm_model: "claude-3-5-sonnet",
-//     is_public: true,
-//     is_active: true,
-//   },
-// ];
-
-// const LLM_MODELS = [
-//   { value: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-//   { value: "gpt-4o", label: "GPT-4o", provider: "openai" },
-//   {
-//     value: "claude-3-5-sonnet-20241022",
-//     label: "Claude 3.5 Sonnet",
-//     provider: "anthropic",
-//   },
-//   {
-//     value: "claude-3-5-haiku-20241022",
-//     label: "Claude 3.5 Haiku",
-//     provider: "anthropic",
-//   },
-// ];
-
-// const CARTESIA_VOICES = [
-//   {
-//     id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
-//     name: "Daniel",
-//     description: "Deep, crisp, professional",
-//     language: "en",
-//     previewUrl: "./voice/daniel.wav",
-//   },
-//   {
-//     id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
-//     name: "Skylar",
-//     description: "Warm, empathetic",
-//     language: "en",
-//     previewUrl: "./voice/sarah.wav",
-//   },
-// ];
-
-// const inp =
-//   "w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 text-sm placeholder-gray-400 outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all shadow-sm";
-
-// // ── Main Page Component ──────────────────────────────────────────────────────
-
-// export default function AgentsPage() {
-//   const { agents, setAgents, removeAgent, isLoading, setLoading } =
-//     useAgentStore();
-//   const [error, setError] = useState<string | null>(null);
-//   const [isDemoMode, setIsDemoMode] = useState(false);
-//   const [view, setView] = useState<"list" | "create">("list");
-
-//   useEffect(() => {
-//     loadAgents();
-//   }, []);
-
-//   async function loadAgents() {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const data = await apiClient.get<Agent[]>("/api/agents/");
-//       if (data && data.length > 0) {
-//         setAgents(data);
-//         setIsDemoMode(false);
-//       } else {
-//         setAgents(DEMO_AGENTS);
-//         setIsDemoMode(true);
-//       }
-//     } catch (e) {
-//       setAgents(DEMO_AGENTS);
-//       setIsDemoMode(true);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   async function handleDelete(id: string) {
-//     if (!confirm("Are you sure you want to delete this voice agent?")) return;
-//     if (isDemoMode || id.startsWith("demo-")) {
-//       removeAgent(id);
-//       return;
-//     }
-//     try {
-//       await apiClient.delete(`/api/agents/${id}`);
-//       removeAgent(id);
-//     } catch (e) {
-//       setError("Failed to delete the agent from server");
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-full bg-[#f8fafc] text-gray-900 p-8 md:p-12">
-//       <AnimatePresence mode="wait">
-//         {view === "list" ? (
-//           <motion.div
-//             key="list-view"
-//             initial={{ opacity: 0, y: 10 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             exit={{ opacity: 0, y: -10 }}
-//             transition={{ duration: 0.3 }}
-//             className="max-w-[1400px] mx-auto"
-//           >
-//             {/* Header */}
-//             <div className="flex items-center gap-4 mb-8">
-//               <h1 className="text-2xl font-medium text-gray-900 tracking-tight">
-//                 Contexts ({agents.length})
-//               </h1>
-//               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c1c1c] text-white text-[11px] font-semibold tracking-wide cursor-pointer hover:bg-black transition-colors">
-//                 GET /v1/contexts{" "}
-//                 <ExternalLink size={12} className="ml-0.5 opacity-80" />
-//               </div>
-
-//               {isDemoMode && (
-//                 <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
-//                   <Info size={14} /> Demo Mode
-//                 </div>
-//               )}
-//             </div>
-
-//             <div className="border-b border-gray-200 mb-8 w-full" />
-
-//             {isLoading ? (
-//               <div className="flex flex-col items-center justify-center h-64 gap-4 text-gray-400">
-//                 <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-//               </div>
-//             ) : (
-//               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-//                 <motion.div
-//                   whileHover={{ y: -2 }}
-//                   whileTap={{ scale: 0.98 }}
-//                   onClick={() => setView("create")}
-//                   className="group cursor-pointer border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-2xl flex flex-col items-center justify-center min-h-[240px] bg-white hover:bg-gray-50 transition-all"
-//                 >
-//                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-gray-400 mb-3 bg-white border border-gray-200 shadow-sm group-hover:text-blue-600">
-//                     <Plus size={24} strokeWidth={2} />
-//                   </div>
-//                   <span className="text-sm font-bold text-gray-900 group-hover:text-blue-700">
-//                     Create New
-//                   </span>
-//                 </motion.div>
-
-//                 {agents.map((agent, i) => (
-//                   <AgentCard
-//                     key={agent.id}
-//                     agent={agent}
-//                     index={i}
-//                     onDelete={() => handleDelete(agent.id)}
-//                   />
-//                 ))}
-//               </div>
-//             )}
-//           </motion.div>
-//         ) : (
-//           <motion.div
-//             key="create-view"
-//             initial={{ opacity: 0, x: 50 }}
-//             animate={{ opacity: 1, x: 0 }}
-//             exit={{ opacity: 0, x: -50 }}
-//             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-//             className="max-w-[1200px] mx-auto"
-//           >
-//             <CreateAgentView
-//               onBack={() => setView("list")}
-//               onSuccess={() => {
-//                 setView("list");
-//                 loadAgents();
-//               }}
-//             />
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//     </div>
-//   );
-// }
-
-// function AgentCard({
-//   agent,
-//   index,
-//   onDelete,
-// }: {
-//   agent: Agent;
-//   index: number;
-//   onDelete: () => void;
-// }) {
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 15 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ delay: index * 0.04 }}
-//       className="bg-white border border-gray-200 rounded-2xl p-6 transition-all duration-200 hover:shadow-md flex flex-col min-h-[240px] relative group"
-//     >
-//       <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-//         <Link href={`/dashboard/agents/${agent.id}`}>
-//           <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-black">
-//             <Settings size={14} />
-//           </button>
-//         </Link>
-//         <button
-//           onClick={onDelete}
-//           className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-600"
-//         >
-//           <Trash2 size={14} />
-//         </button>
-//       </div>
-
-//       <div className="flex-1 space-y-5 mt-1">
-//         <div>
-//           <p className="text-[11px] text-gray-400 font-medium mb-1">Name</p>
-//           <h3 className="font-semibold text-gray-900 text-[15px] pr-20 leading-tight truncate">
-//             {agent.name}
-//           </h3>
-//         </div>
-//         <div>
-//           <p className="text-[11px] text-gray-400 font-medium mb-1">
-//             Creation Date
-//           </p>
-//           <p className="text-[13px] text-gray-700 font-medium">May 19, 2026</p>
-//         </div>
-//         <div>
-//           <p className="text-[11px] text-gray-400 font-medium mb-1">
-//             Last Edit
-//           </p>
-//           <p className="text-[13px] text-gray-700 font-medium flex items-center gap-2">
-//             May 19, 2026
-//             <span
-//               className={`w-1.5 h-1.5 rounded-full ${agent.is_active ? "bg-green-500" : "bg-gray-300"}`}
-//             />
-//           </p>
-//         </div>
-//       </div>
-//       <Link
-//         href={`/dashboard/agents/${agent.id}/test`}
-//         className="mt-5 block opacity-0 group-hover:opacity-100 transition-opacity"
-//       >
-//         <button className="w-full py-2 bg-gray-50 hover:bg-gray-100 text-black font-medium text-xs rounded-lg border border-gray-200 flex items-center justify-center gap-2">
-//           <Mic size={14} /> Launch Sandbox
-//         </button>
-//       </Link>
-//     </motion.div>
-//   );
-// }
-
-// // ── Creation Form Component (Step-by-Step Wizard with Animations) ───────────
-
-// function CreateAgentView({
-//   onBack,
-//   onSuccess,
-// }: {
-//   onBack: () => void;
-//   onSuccess: () => void;
-// }) {
-//   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-//   const [saving, setSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
-//   const [copied, setCopied] = useState(false);
-//   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
-//   const [loadingAvatars, setLoadingAvatars] = useState(true);
-
-//   const [form, setForm] = useState({
-//     name: "",
-//     description: "",
-//     language: "en",
-//     voice_id: "",
-//     system_prompt:
-//       "You are a professional AI Support Desk Assistant designed to help users resolve issues...",
-//     llm_model: "gpt-4o",
-//     llm_provider: "openai",
-//     is_public: true,
-//     avatar_id: "",
-//   });
-
-//   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-//   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-//   useEffect(() => {
-//     async function initFormData() {
-//       try {
-//         setLoadingAvatars(true);
-//         const avatarResponse = await apiClient.get<any>("/api/avatars");
-//         const avatarData =
-//           avatarResponse?.data?.results ?? avatarResponse?.data ?? [];
-//         if (avatarData && avatarData.length > 0) {
-//           setAvatars(avatarData);
-//           setForm((f) => ({ ...f, avatar_id: avatarData[0].id }));
-//         }
-//       } catch (err) {
-//         console.error(err);
-//       } finally {
-//         setLoadingAvatars(false);
-//       }
-//     }
-//     initFormData();
-//     return () => {
-//       if (audioRef.current) audioRef.current.pause();
-//     };
-//   }, []);
-
-//   const set = (k: string, v: any) => setForm((prev) => ({ ...prev, [k]: v }));
-
-//   const handleTogglePreview = (
-//     e: React.MouseEvent,
-//     voiceId: string,
-//     url: string,
-//   ) => {
-//     e.stopPropagation();
-//     if (playingVoiceId === voiceId) {
-//       audioRef.current?.pause();
-//       setPlayingVoiceId(null);
-//     } else {
-//       if (audioRef.current) audioRef.current.pause();
-//       audioRef.current = new Audio(url);
-//       setPlayingVoiceId(voiceId);
-//       audioRef.current.play().catch(() => setPlayingVoiceId(null));
-//       audioRef.current.onended = () => setPlayingVoiceId(null);
-//     }
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!form.name.trim()) return setError("Agent name is required.");
-//     setSaving(true);
-//     try {
-//       const res = await apiClient.post<any>("/api/agents/", form);
-//       setCreatedAgentId(res?.id || "18ba065b41e349a38c138767a10de987");
-//       setCurrentStep(3);
-//     } catch (e: any) {
-//       setError(e.message ?? "Failed to create agent");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   const handleStepClick = (step: 1 | 2 | 3) => {
-//     if (step === 3 && !createdAgentId) return; // Prevent going to embed if not created
-//     setCurrentStep(step);
-//   };
-
-//   return (
-//     <div className="w-full pb-16">
-//       {/* Top Action Bar */}
-//       <div className="flex items-center justify-between mb-8">
-//         <div className="flex items-center gap-3">
-//           <button
-//             onClick={onBack}
-//             className="p-2 -ml-2 rounded-lg text-gray-500 hover:text-black hover:bg-gray-100 transition-all"
-//           >
-//             <ChevronLeft size={20} />
-//           </button>
-//           <h2 className="text-xl font-semibold text-gray-900">
-//             {form.name || "Support Desk 1"}
-//           </h2>
-//         </div>
-//         <button
-//           onClick={currentStep === 2 ? handleSubmit : () => setCurrentStep(2)}
-//           disabled={saving}
-//           className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-all"
-//         >
-//           <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
-//         </button>
-//       </div>
-
-//       {/* Interactive Stepper Navigation */}
-//       <div className="flex items-center gap-12 border-b border-gray-200 mb-8 bg-white px-6 rounded-t-xl shadow-sm pt-4">
-//         <StepItem
-//           step={1}
-//           currentStep={currentStep}
-//           icon={<Settings size={16} />}
-//           label="Configuration"
-//           onClick={() => handleStepClick(1)}
-//         />
-//         <StepItem
-//           step={2}
-//           currentStep={currentStep}
-//           icon={<User size={16} />}
-//           label="Avatars"
-//           onClick={() => handleStepClick(2)}
-//         />
-//         <StepItem
-//           step={3}
-//           currentStep={currentStep}
-//           icon={<Code size={16} />}
-//           label="Embed Code"
-//           onClick={() => handleStepClick(3)}
-//         />
-//       </div>
-
-//       <AnimatePresence mode="wait">
-//         <motion.div
-//           key={currentStep}
-//           initial={{ opacity: 0, x: 20 }}
-//           animate={{ opacity: 1, x: 0 }}
-//           exit={{ opacity: 0, x: -20 }}
-//           transition={{ duration: 0.3, ease: "easeInOut" }}
-//         >
-//           {error && (
-//             <div className="px-4 py-3 mb-6 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
-//               <Shield size={16} /> {error}
-//             </div>
-//           )}
-
-//           {/* STEP 1: CONFIGURATION */}
-//           {currentStep === 1 && (
-//             <div className="space-y-6">
-//               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-//                 <Card
-//                   title="Basic Information"
-//                   icon={<Info size={16} className="text-[#7c3aed]" />}
-//                 >
-//                   <div className="space-y-5">
-//                     <Field label="Chatbot Name *">
-//                       <input
-//                         value={form.name}
-//                         onChange={(e) => set("name", e.target.value)}
-//                         placeholder="Support Desk 1"
-//                         className={inp}
-//                       />
-//                     </Field>
-//                     <Field label="Description">
-//                       <textarea
-//                         value={form.description}
-//                         onChange={(e) => set("description", e.target.value)}
-//                         rows={4}
-//                         className={`${inp} resize-none`}
-//                       />
-//                     </Field>
-//                   </div>
-//                 </Card>
-
-//                 <Card
-//                   title="AI Configuration"
-//                   icon={<Settings size={16} className="text-[#7c3aed]" />}
-//                 >
-//                   <Field label="System Prompt *">
-//                     <textarea
-//                       value={form.system_prompt}
-//                       onChange={(e) => set("system_prompt", e.target.value)}
-//                       rows={9}
-//                       className={`${inp} resize-none bg-gray-50`}
-//                     />
-//                   </Field>
-//                 </Card>
-//               </div>
-
-//               <Card
-//                 title="Model Settings"
-//                 icon={<Settings size={16} className="text-[#7c3aed]" />}
-//               >
-//                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-//                   {/* Voice Dropdown */}
-//                   <Field label="Voice">
-//                     <div className="relative">
-//                       <select
-//                         value={form.voice_id}
-//                         onChange={(e) => set("voice_id", e.target.value)}
-//                         className={`${inp} appearance-none pr-10`}
-//                       >
-//                         <option value="">Select a voice timbre</option>
-//                         {CARTESIA_VOICES.map((v) => (
-//                           <option key={v.id} value={v.id}>
-//                             {v.name} ({v.description})
-//                           </option>
-//                         ))}
-//                       </select>
-//                       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-2">
-//                         <ChevronDown size={16} className="text-gray-400" />
-//                       </div>
-//                       {/* Play Button for Selected Voice */}
-//                       {form.voice_id && (
-//                         <button
-//                           onClick={(e) => {
-//                             const v = CARTESIA_VOICES.find(
-//                               (x) => x.id === form.voice_id,
-//                             );
-//                             if (v) handleTogglePreview(e, v.id, v.previewUrl);
-//                           }}
-//                           className="mt-3 flex items-center gap-2 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-//                         >
-//                           {playingVoiceId === form.voice_id ? (
-//                             <Pause size={14} fill="currentColor" />
-//                           ) : (
-//                             <Play size={14} fill="currentColor" />
-//                           )}
-//                           Preview Selected Voice
-//                         </button>
-//                       )}
-//                     </div>
-//                   </Field>
-
-//                   {/* Model Dropdown */}
-//                   <Field label="Language Engine">
-//                     <div className="relative">
-//                       <select
-//                         value={form.llm_model}
-//                         onChange={(e) => {
-//                           const m = LLM_MODELS.find(
-//                             (x) => x.value === e.target.value,
-//                           );
-//                           set("llm_model", e.target.value);
-//                           if (m) set("llm_provider", m.provider);
-//                         }}
-//                         className={`${inp} appearance-none pr-10`}
-//                       >
-//                         {LLM_MODELS.map((m) => (
-//                           <option key={m.value} value={m.value}>
-//                             {m.label} ({m.provider})
-//                           </option>
-//                         ))}
-//                       </select>
-//                       <ChevronDown
-//                         size={16}
-//                         className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
-//                       />
-//                     </div>
-//                   </Field>
-//                 </div>
-//               </Card>
-//               <div className="flex justify-end">
-//                 <button
-//                   onClick={() => setCurrentStep(2)}
-//                   className="bg-[#7c3aed] text-white px-8 py-2.5 rounded-lg font-medium"
-//                 >
-//                   Next
-//                 </button>
-//               </div>
-//             </div>
-//           )}
-
-//           {/* STEP 2: AVATARS */}
-//           {currentStep === 2 && (
-//             <div className="space-y-6">
-//               <Card
-//                 title="Avatars"
-//                 icon={<User size={16} className="text-[#7c3aed]" />}
-//               >
-//                 {loadingAvatars ? (
-//                   <div className="py-12 flex justify-center">
-//                     <div className="w-8 h-8 border-2 border-t-blue-600 rounded-full animate-spin" />
-//                   </div>
-//                 ) : (
-//                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-//                     {avatars.map((av) => (
-//                       <AvatarCard
-//                         key={av.id}
-//                         avatar={av}
-//                         previewUrl={av.preview_url}
-//                         selected={form.avatar_id === av.id}
-//                         onClick={() => set("avatar_id", av.id)}
-//                       />
-//                     ))}
-//                   </div>
-//                 )}
-//               </Card>
-//               <div className="flex justify-between">
-//                 <button
-//                   onClick={() => setCurrentStep(1)}
-//                   className="px-8 py-2.5 border border-gray-300 rounded-lg"
-//                 >
-//                   Back
-//                 </button>
-//                 <button
-//                   onClick={handleSubmit}
-//                   disabled={saving}
-//                   className="bg-[#7c3aed] text-white px-8 py-2.5 rounded-lg"
-//                 >
-//                   {saving ? "Saving..." : "Finish"}
-//                 </button>
-//               </div>
-//             </div>
-//           )}
-
-//           {/* STEP 3: EMBED CODE */}
-//           {currentStep === 3 && (
-//             <div className="space-y-6">
-//               <Card
-//                 title="Embed Code"
-//                 icon={<Code size={16} className="text-[#7c3aed]" />}
-//               >
-//                 <div className="bg-[#f0f7ff] p-4 rounded-xl mb-6 text-[#0c4a6e] flex gap-3">
-//                   <Info size={20} className="shrink-0 text-blue-500" />
-//                   <div>
-//                     <p className="font-medium mb-1">Implementation Guide:</p>
-//                     <ol className="list-decimal list-inside text-sm opacity-80">
-//                       <li>Copy the script tag below</li>
-//                       <li>
-//                         Paste it into your index.html just before the
-//                         &lt;/body&gt; tag
-//                       </li>
-//                     </ol>
-//                   </div>
-//                 </div>
-//                 <div className="bg-[#1a1a1a] p-5 rounded-2xl mb-6 font-mono text-sm text-green-400 overflow-x-auto">
-//                   {`<script src="https://app.digitalemployees.us/qxbox/embed/${createdAgentId}.js"></script>`}
-//                 </div>
-//                 <button
-//                   onClick={() => {
-//                     navigator.clipboard.writeText(
-//                       `<script src="https://app.digitalemployees.us/qxbox/embed/${createdAgentId}.js"></script>`,
-//                     );
-//                     setCopied(true);
-//                     setTimeout(() => setCopied(false), 2000);
-//                   }}
-//                   className="bg-[#7c3aed] text-white px-6 py-2.5 rounded-lg flex items-center gap-2"
-//                 >
-//                   <Copy size={18} /> {copied ? "Copied!" : "Copy Embed Code"}
-//                 </button>
-//               </Card>
-//             </div>
-//           )}
-//         </motion.div>
-//       </AnimatePresence>
-//     </div>
-//   );
-// }
-
-// // ── Shared UI Components ────────────────────────────────────────────────────
-
-// function StepItem({ step, currentStep, icon, label, onClick }: any) {
-//   const isActive = currentStep === step;
-//   const isPast = currentStep > step;
-//   return (
-//     <div
-//       onClick={onClick}
-//       className={`flex items-center gap-2 py-4 border-b-2 transition-all cursor-pointer ${isActive ? "border-[#7c3aed]" : "border-transparent opacity-60 hover:opacity-100"}`}
-//     >
-//       <div
-//         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isActive || isPast ? "bg-[#7c3aed] text-white" : "bg-gray-200 text-gray-500"}`}
-//       >
-//         {step}
-//       </div>
-//       <div
-//         className={`flex items-center gap-1.5 font-semibold text-sm ${isActive || isPast ? "text-[#7c3aed]" : "text-gray-400"}`}
-//       >
-//         {icon} {label}
-//       </div>
-//     </div>
-//   );
-// }
-
-// function Card({ title, icon, children }: any) {
-//   return (
-//     <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-//       <div className="flex items-center gap-2 mb-6 text-[#7c3aed]">
-//         {icon} <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-//       </div>
-//       {children}
-//     </div>
-//   );
-// }
-
-// function Field({ label, children }: any) {
-//   return (
-//     <div className="w-full">
-//       <label className="block text-[13px] font-medium text-gray-600 mb-1.5">
-//         {label}
-//       </label>
-//       {children}
-//     </div>
-//   );
-// }
-
-// function AvatarCard({ avatar, selected, onClick, previewUrl }: any) {
-//   return (
-//     <button
-//       type="button"
-//       onClick={onClick}
-//       className={`relative flex flex-col items-center gap-3 p-4 rounded-xl border transition-all ${selected ? "border-[#7c3aed] bg-blue-50/30 ring-1 ring-[#7c3aed]" : "border-gray-200 bg-white hover:border-gray-300"}`}
-//     >
-//       <div className="rounded-full ring-1 ring-gray-200 bg-gray-100 overflow-hidden w-20 h-20">
-//         <img
-//           src={previewUrl || "https://ui-avatars.com/api/?name=A"}
-//           alt={avatar.name}
-//           className="w-full h-full object-cover"
-//         />
-//       </div>
-//       <p
-//         className={`text-sm font-medium ${selected ? "text-[#7c3aed]" : "text-gray-800"}`}
-//       >
-//         {avatar.name}
-//       </p>
-//     </button>
-//   );
-// }
-
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  Search,
   Plus,
-  Mic,
-  Settings,
   Trash2,
-  Shield,
-  Info,
+  Settings,
+  Mic,
   ChevronLeft,
-  User,
   Check,
-  Volume2,
   Play,
   Pause,
-  ExternalLink,
-  Code,
-  Save,
-  Copy,
-  ChevronDown,
-  Sparkles,
-  BookOpen,
+  Monitor,
+  Smartphone,
+  Send,
   Upload,
-  FileText,
-  X,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  File,
-  RotateCcw,
   Type,
-  Cpu,
   Globe,
+  X,
+  Copy,
+  Code2,
+  ChevronDown,
+  Info,
+  Loader2,
+  Video,
   Link2,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  SlidersHorizontal,
+  Blocks,
+  Sparkles,
 } from "lucide-react";
-import { useAgentStore } from "@/store";
 import { apiClient } from "@/lib/api/client";
-import { AvatarOption } from "@/components/avatar/Avatars";
+import { useAgentStore } from "@/store";
+import { useToast } from "@/components/widget/Toast";
+import {
+  MUSETALK_AVATARS,
+  CARTESIA_VOICES,
+  LANGUAGES,
+  PERSONALITIES,
+} from "@/lib/catalog";
 import type { Agent } from "@/types";
-import { createPortal } from "react-dom";
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Templates (prefill the wizard) ───────────────────────────────────────────
+interface Template {
+  name: string;
+  tagline: string;
+  avatar: string;
+  musetalk_avatar_id: string;
+  voice_id: string;
+  personality: string;
+  system_prompt: string;
+}
 
-const DEMO_AGENTS: Agent[] = [
+const TEMPLATES: Template[] = [
   {
-    id: "demo-sarah",
-    name: "Welcome to LiveAvatar",
-    slug: "sarah-support",
-    description:
-      "Empathetic customer success agent specialized in SaaS troubleshooting.",
+    name: "Lila",
+    tagline: "A witty brand ambassador that brings your brand to life",
+    avatar: "/avatars/Ava.png",
+    musetalk_avatar_id: "ava",
+    voice_id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
+    personality: "Playful and Witty",
     system_prompt:
-      "You are Sarah, a customer support agent. Be warm, professional, and clear.",
-    language: "en-US",
-    avatar_type: "waveform",
-    llm_provider: "openai",
-    avatar_id: "123",
-    llm_model: "gpt-4o",
-    is_public: true,
-    is_active: true,
+      "You are Lila, a witty and charismatic brand ambassador. Bring the brand's personality to life, answer questions with warmth and humor, and keep replies short and lively.",
   },
   {
-    id: "demo-alex",
-    name: "Customer Support",
-    slug: "alex-recruiter",
-    description:
-      "Highly engaging interactive voice recruiter for technical screenings.",
+    name: "Alex",
+    tagline: "Laid-back guide who helps you plan trips with insider tips",
+    avatar: "/avatars/theo.png",
+    musetalk_avatar_id: "theo",
+    voice_id: "79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e",
+    personality: "Friendly and Professional",
     system_prompt:
-      "You are Alex, a tech recruiter. Be upbeat and assess skills.",
-    language: "en-US",
-    avatar_type: "readyplayerme",
-    avatar_url: "https://models.readyplayer.me/64b58e72750e6878b6711a78.glb",
-    llm_provider: "anthropic",
-    avatar_id: "12134",
-    llm_model: "claude-3-5-sonnet",
-    is_public: true,
-    is_active: true,
+      "You are Alex, a laid-back, well-traveled guide. Help users plan trips with insider tips and cultural notes. Keep it friendly and conversational.",
+  },
+  {
+    name: "Emma",
+    tagline: "Master of role-play, ready for any scene — smooth and fun",
+    avatar: "/avatars/maya.png",
+    musetalk_avatar_id: "maya",
+    voice_id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
+    personality: "Warm and Empathetic",
+    system_prompt:
+      "You are Emma, a master of role-play ready for any scene. Make demos smooth, fun, and engaging while staying helpful and on-topic.",
+  },
+  {
+    name: "Jack",
+    tagline: "Tech-savvy SDR who makes sales chats effortless",
+    avatar: "/avatars/sidharth.png",
+    musetalk_avatar_id: "sidhart",
+    voice_id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
+    personality: "Energetic and Persuasive",
+    system_prompt:
+      "You are Jack, a tech-savvy sales development rep. Make sales chats effortless — qualify needs, highlight value, and guide toward a booked demo.",
   },
 ];
 
-const MUSETALK_AVATARS = [
-  {
-    id: "ava",
-    name: "Ava",
-    description: "Professional female presenter",
-    preview_url: "/avatars/Ava.png",
-  },
-  {
-    id: "yongen",
-    name: "Yongen",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Yongen.png",
-  },
-  {
-    id: "maya",
-    name: "Maya",
-    description: "Default demo avatar",
-    preview_url: "/avatars/maya.png",
-  },
-
-  {
-    id: "mayamid",
-    name: "Maya (Mid Quality)",
-    description: "Default demo avatar",
-    preview_url: "/avatars/maya.png",
-  },
-
-  {
-    id: "ava4",
-    name: "Ava (Low Quality)",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
-  },
-
-  {
-    id: "sidhart",
-    name: "Sidharth",
-    description: "An Indian male avatar with a friendly demeanor",
-    preview_url: "/avatars/sidharth.png",
-  },
-
-  {
-    id: "sidhartmid",
-    name: "Sidharth (Sidharth Mid Quality)",
-    description: "An Indian male avatar with a friendly demeanor",
-    preview_url: "/avatars/sidharth.png",
-  },
-
-  {
-    id: "theo",
-    name: "Theo",
-    description: "A friendly corporate support representative from Oceania",
-    preview_url: "/avatars/theo.png",
-  },
-];
-
-// Spoken language for the agent (English is the default).
-const LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "hi", label: "Hindi" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "pt", label: "Portuguese" },
-  { value: "it", label: "Italian" },
-  { value: "nl", label: "Dutch" },
-  { value: "ja", label: "Japanese" },
-  { value: "zh", label: "Chinese" },
-];
-
-// const CARTESIA_VOICES = [
-//   {
-//     id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
-//     name: "Daniel",
-//     description: "Deep, crisp, professional",
-//     language: "en",
-//     previewUrl: "./voice/daniel.wav",
-//   },
-//   {
-//     id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
-//     name: "Skylar",
-//     description: "Warm, empathetic",
-//     language: "en",
-//     previewUrl: "./voice/sarah.wav",
-//   },
-// ];
-const CARTESIA_VOICES = [
-  {
-    id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
-    name: "Daniel",
-    description: "Deep, crisp, professional corporate American male",
-    language: "en",
-    gender: "Masculine",
-    previewUrl: "./voice/daniel.wav",
-  },
-  {
-    id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
-    name: "Skylar",
-    description: "Warm, empathetic conversational American female ",
-    language: "en",
-    gender: "Feminine",
-    previewUrl: "./voice/sarah.wav",
-  },
-  {
-    id: "95d51f79-c397-46f9-b49a-23763d3eaa2d",
-    name: "Arushi",
-    description:
-      "Natural localized conversational English / Hindi hybrid speaker",
-    language: "hi",
-    gender: "Feminine",
-    previewUrl: "./voice/arushi.wav",
-  },
-
-  {
-    id: "62ae83ad-4f6a-430b-af41-a9bede9286ca",
-    name: "British Reading Lady",
-    description:
-      "Elegant, authoritative Received Pronunciation (RP) storyteller",
-    language: "en",
-    gender: "Feminine",
-    previewUrl: "./voice/british.wav",
-  },
-  {
-    id: "79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e",
-    name: "Theo",
-    description:
-      "Friendly, casual corporate support representative from Oceania",
-    language: "en",
-    gender: "Masculine",
-    previewUrl: "./voice/theo.wav",
-  },
-];
-
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
+const ALLOWED_EXT = [".pdf", ".txt", ".md", ".docx"];
 const ALLOWED_EXT_LABEL = "PDF, TXT, MD, DOCX";
 const MAX_FILE_MB = 20;
-
-const inp =
-  "w-full px-4! py-2.5! bg-white! border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all shadow-sm";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type DocStatus = "pending" | "processing" | "ready" | "error";
-import { useToast } from "../../../components/widget/Toast";
-
-interface UploadedDoc {
-  id: string;
-  filename: string;
-  status: DocStatus;
-  file_size?: number;
-  content_type?: string;
-  // local-only while uploading
-  uploading?: boolean;
-  uploadError?: string;
-}
-
-interface KBInfo {
-  id: string;
-  name: string;
-  document_count: number;
-}
-
-// Website-backed KB (created + crawled via /kb/from-url).
-interface WebsiteKB {
-  id: string;
-  agent_id: string;
-  name: string;
-  source_url: string;
-  kb_type: string;
-  crawl_status: string; // pending | crawling | ready | error | failed
-  pages_indexed: number;
-  crawl_error?: string | null;
-  last_crawled_at?: string | null;
-}
-
 const CRAWL_DONE = new Set(["ready", "error", "failed"]);
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+const avatarPreview = (musetalkId: string) =>
+  MUSETALK_AVATARS.find((a) => a.id === musetalkId)?.preview_url ||
+  "/avatars/Ava.png";
 
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default function AgentsPage() {
   const { agents, setAgents, removeAgent, isLoading, setLoading } =
     useAgentStore();
-  const [error, setError] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const { showToast } = useToast();
+  const [query, setQuery] = useState("");
+  const [wizard, setWizard] = useState<{ open: boolean; template?: Template }>({
+    open: false,
+  });
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const [view, setView] = useState<"list" | "create">("list");
-  const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    loadAgents();
-  }, []);
-
-  async function loadAgents() {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await apiClient.get<Agent[]>("/api/agents/");
-      if (data && data.length > 0) {
-        setAgents(data);
-        setIsDemoMode(false);
-      } else {
-        setAgents(DEMO_AGENTS);
-        setIsDemoMode(true);
-      }
+      setAgents((data || []).filter((a) => !a.id.startsWith("demo-")));
     } catch {
-      setAgents(DEMO_AGENTS);
-      setIsDemoMode(true);
+      setAgents([]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [setAgents, setLoading]);
 
-  // async function handleDelete(id: string) {
-  //   if (!confirm("Are you sure you want to delete this voice agent?")) return;
-  //   if (isDemoMode || id.startsWith("demo-")) {
-  //     removeAgent(id);
-  //     return;
-  //   }
-  //   try {
-  //     await apiClient.delete(`/api/agents/${id}`);
-  //     removeAgent(id);
-  //   } catch {
-  //     setError("Failed to delete the agent from server");
-  //   }
-  // }
+  useEffect(() => {
+    loadAgents();
+  }, [loadAgents]);
 
-  async function handleDelete(id: string) {
-    setIsDeleting(true);
-
-    if (isDemoMode || id.startsWith("demo-")) {
-      removeAgent(id);
-      setDeleteAgentId(null);
-      setIsDeleting(false);
-      return;
+  // Open the wizard when arriving with ?new=1 (from Home / sidebar).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("new") === "1") {
+      setWizard({ open: true });
+      window.history.replaceState({}, "", "/dashboard/agents");
     }
+  }, []);
 
+  const handleDelete = async (id: string) => {
+    setDeleting(true);
     try {
       await apiClient.delete(`/api/agents/${id}`);
       removeAgent(id);
-      setDeleteAgentId(null);
-      showToast({
-        type: "success",
-        title: "Voice agent deleted",
-        message: "The agent was removed successfully.",
-      });
+      showToast({ type: "success", title: "Agent deleted" });
     } catch {
-      setError("Failed to delete the agent from server");
-      showToast({
-        type: "error",
-        title: "Delete failed",
-        message: "Something went wrong. Try again.",
-      });
+      showToast({ type: "error", title: "Delete failed", message: "Try again." });
     } finally {
-      setIsDeleting(false);
+      setDeleting(false);
+      setDeleteId(null);
     }
-  }
+  };
+
+  const filtered = agents.filter((a) =>
+    a.name.toLowerCase().includes(query.toLowerCase()),
+  );
 
   return (
-    <div className="min-h-full text-[var(--foreground)] p-8! md:p-12!">
-      <AnimatePresence mode="wait">
-        {view === "list" ? (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-            className="max-w-[1400px] mx-auto"
-          >
-            <div className="flex flex-wrap items-end gap-4 mb-2">
-              <div>
-                <span className="eyebrow mb-3">
-                  <Sparkles size={11} /> Workspace
-                </span>
-                <h1 className="text-[28px] font-semibold text-[var(--ink)] tracking-tight mt-3!">
-                  Your agents{" "}
-                  <span className="text-[var(--muted)] font-normal">
-                    ({agents.length})
-                  </span>
-                </h1>
-                <p className="text-sm text-[var(--slate)] mt-1.5!">
-                  Build, configure, and deploy lifelike AI avatars.
-                </p>
-              </div>
+    <div className="p-8! md:p-10! max-w-[1320px] mx-auto! w-full!">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-3! mb-8!">
+        <div className="relative flex-1 min-w-[220px] max-w-[420px]!">
+          <Search
+            size={16}
+            className="absolute left-3.5! top-1/2 -translate-y-1/2 text-[var(--muted)]"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search agents…"
+            className="fld pl-10! pr-4! py-2.5!"
+          />
+        </div>
+        <button
+          onClick={() => setWizard({ open: true })}
+          className="btn-dark px-4! py-2.5! text-[13.5px] ml-auto"
+        >
+          <Plus size={16} /> New agent
+        </button>
+      </div>
 
-              {isDemoMode && (
-                <div className="ml-auto flex items-center gap-1.5 px-3! py-1.5! rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold">
-                  <Info size={14} /> Demo Mode
-                </div>
-              )}
-            </div>
-            <div className="border-b border-[var(--line)] my-8! w-full" />
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-4 text-gray-400">
-                <div className="w-8 h-8 border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                <motion.div
-                  whileHover={{ y: -3 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setView("create")}
-                  className="group cursor-pointer border-2 border-dashed border-[var(--line)] hover:border-[var(--violet)] rounded-2xl flex flex-col items-center justify-center min-h-[236px] bg-white/60 hover:bg-[var(--violet-050)] transition-all"
-                >
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--muted)] mb-3 bg-white border border-[var(--line)] shadow-sm group-hover:text-white group-hover:border-transparent transition-all"
-                    style={{ backgroundImage: "none" }}
-                  >
-                    <span className="grid place-items-center w-full h-full rounded-full group-hover:[background:var(--grad)] transition-all">
-                      <Plus size={22} strokeWidth={2.2} />
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--violet-700)] transition-colors">
-                    Create new agent
-                  </span>
-                </motion.div>
-                {agents.map((agent, i) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    index={i}
-                    onDelete={() => setDeleteAgentId(agent.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="create"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="max-w-[1200px] mx-auto"
+      {/* Templates */}
+      <h2 className="text-[15px] font-semibold text-[var(--ink)] mb-3.5!">
+        Agent templates
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4! mb-10!">
+        {TEMPLATES.map((t) => (
+          <button
+            key={t.name}
+            onClick={() => setWizard({ open: true, template: t })}
+            className="group text-left bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--violet-100)] transition-all"
           >
-            <CreateAgentView
-              onBack={() => setView("list")}
-              onSuccess={() => {
-                setView("list");
-                loadAgents();
-              }}
+            <div className="relative aspect-[16/10] bg-[var(--line-soft)] overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={t.avatar}
+                alt={t.name}
+                className="w-full! h-full! object-cover"
+              />
+              <span className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/25 transition-colors">
+                <span className="text-white text-[12px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 px-3! py-1.5! rounded-lg">
+                  Use template
+                </span>
+              </span>
+            </div>
+            <div className="p-4!">
+              <p className="text-[14.5px] font-semibold text-[var(--ink)]">
+                {t.name}
+              </p>
+              <p className="text-[12.5px] text-[var(--slate)] mt-1! line-clamp-2 leading-snug">
+                {t.tagline}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* My Agents */}
+      <h2 className="text-[15px] font-semibold text-[var(--ink)] mb-3.5!">
+        My Agents{" "}
+        <span className="text-[var(--muted)] font-normal">
+          ({filtered.length})
+        </span>
+      </h2>
+
+      {isLoading ? (
+        <div className="grid place-items-center py-20!">
+          <div className="w-8! h-8! border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white border border-[var(--line)] rounded-2xl shadow-[var(--shadow-sm)] grid place-items-center text-center py-16! px-6!">
+          <span className="w-12! h-12! rounded-2xl grid place-items-center bg-[var(--violet-050)] text-[var(--violet-700)] border border-[var(--violet-100)] mb-3!">
+            <Sparkles size={22} />
+          </span>
+          <p className="text-[15px] font-semibold text-[var(--ink)]">
+            {query ? "No agents match your search" : "No agents yet"}
+          </p>
+          <p className="text-[13px] text-[var(--slate)] mt-1!">
+            {query
+              ? "Try a different name."
+              : "Create your first agent or start from a template above."}
+          </p>
+          {!query && (
+            <button
+              onClick={() => setWizard({ open: true })}
+              className="btn-dark px-4! py-2.5! text-[13.5px] mt-5!"
+            >
+              <Plus size={16} /> New agent
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4!">
+          {filtered.map((a, i) => (
+            <AgentCard
+              key={a.id}
+              agent={a}
+              index={i}
+              onDelete={() => setDeleteId(a.id)}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {deleteAgentId &&
+          ))}
+        </div>
+      )}
+
+      {/* Delete modal */}
+      {deleteId &&
         createPortal(
-          <div className="!fixed !inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm !p-4">
-            <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
-              {/* Header */}
-              <div className="flex items-start gap-4 border-b border-gray-100 !px-6 !py-5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <svg
-                    className="h-5 w-5 text-red-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                    />
-                  </svg>
+          <div className="fixed! inset-0! z-[9999] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4!">
+            <div className="w-full max-w-md! bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
+              <div className="flex items-start gap-4! border-b border-[var(--line)] px-6! py-5!">
+                <div className="w-11! h-11! shrink-0 grid place-items-center rounded-full bg-red-100 text-red-600">
+                  <Trash2 size={18} />
                 </div>
-                <div className="!mt-0.5">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Delete Voice Agent
-                  </h2>
-                  <p className="!mt-1.5 text-sm leading-relaxed text-gray-500">
-                    Are you sure you want to delete this voice agent? This
-                    action cannot be undone.
+                <div>
+                  <h3 className="text-[16px] font-semibold text-[var(--ink)]">
+                    Delete agent
+                  </h3>
+                  <p className="text-[13px] text-[var(--slate)] mt-1!">
+                    This permanently removes the agent and its knowledge. This
+                    can&apos;t be undone.
                   </p>
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="flex justify-end gap-3 bg-gray-50 !px-6 !py-4">
+              <div className="flex justify-end gap-3! bg-[var(--sidebar)] px-6! py-4!">
                 <button
-                  disabled={isDeleting}
-                  onClick={() => setDeleteAgentId(null)}
-                  className="rounded-lg border border-gray-300 bg-white !px-4 !py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+                  disabled={deleting}
+                  onClick={() => setDeleteId(null)}
+                  className="rounded-lg border border-[var(--line)] bg-white px-4! py-2! text-[13px] font-medium text-[var(--slate)] hover:bg-[var(--sidebar-hover)] transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
-
                 <button
-                  disabled={isDeleting}
-                  onClick={() => handleDelete(deleteAgentId)}
-                  className="inline-flex items-center justify-center rounded-lg bg-red-600 !px-4 !py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
+                  disabled={deleting}
+                  onClick={() => handleDelete(deleteId)}
+                  className="inline-flex items-center gap-2! rounded-lg bg-red-600 px-4! py-2! text-[13px] font-semibold text-white hover:bg-red-700 transition disabled:bg-red-400"
                 >
-                  {isDeleting ? (
-                    <span className="flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        />
-                      </svg>
-                      Deleting...
-                    </span>
-                  ) : (
-                    "Delete"
-                  )}
+                  {deleting && <Loader2 size={14} className="animate-spin" />}
+                  {deleting ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </div>
           </div>,
           document.body,
         )}
+
+      {/* Wizard overlay */}
+      <AnimatePresence>
+        {wizard.open && (
+          <CreateWizard
+            template={wizard.template}
+            onClose={() => setWizard({ open: false })}
+            onCreated={() => {
+              setWizard({ open: false });
+              loadAgents();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ── Agent Card ───────────────────────────────────────────────────────────────
-
+// ── Agent card ───────────────────────────────────────────────────────────────
 function AgentCard({
   agent,
   index,
@@ -3615,1308 +340,1254 @@ function AgentCard({
   index: number;
   onDelete: () => void;
 }) {
-  const initials = agent.name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
+  const preview = avatarPreview(agent.musetalk_avatar_id || "ava");
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
-      whileHover={{ y: -3 }}
-      className="bg-white border border-[var(--line)] rounded-2xl p-5! transition-all duration-200 hover:shadow-[var(--shadow-md)] hover:border-[var(--violet-100)] flex flex-col min-h-[236px]! relative group"
+      transition={{ delay: index * 0.03 }}
+      className="group bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--violet-100)] transition-all flex flex-col"
     >
-      {/* Header: avatar + actions */}
-      <div className="flex items-start justify-between mb-4!">
-        <div
-          className="w-11 h-11 rounded-xl grid place-items-center text-white font-semibold text-sm shrink-0"
-          style={{ background: "var(--grad)" }}
-        >
-          {initials || "AI"}
-        </div>
-        <div className="flex gap-1.5! opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="relative aspect-[16/10] bg-[var(--line-soft)] overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={preview} alt={agent.name} className="w-full! h-full! object-cover" />
+        <div className="absolute top-2.5! right-2.5! flex gap-1.5! opacity-0 group-hover:opacity-100 transition-opacity">
           <Link href={`/dashboard/agents/${agent.id}`}>
-            <button
-              title="Configure"
-              className="w-8 h-8 rounded-lg border border-[var(--line)] flex items-center justify-center text-[var(--muted)] hover:bg-[var(--violet-050)] hover:text-[var(--violet-700)] hover:border-[var(--violet-100)] transition-colors"
-            >
+            <span className="w-8! h-8! rounded-lg grid place-items-center bg-white/90 backdrop-blur text-[var(--slate)] hover:text-[var(--violet-700)] shadow-sm transition-colors">
               <Settings size={14} />
-            </button>
+            </span>
           </Link>
           <button
             onClick={onDelete}
-            title="Delete"
-            className="w-8 h-8 rounded-lg border border-[var(--line)] flex items-center justify-center text-[var(--muted)] hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors"
+            className="w-8! h-8! rounded-lg grid place-items-center bg-white/90 backdrop-blur text-[var(--slate)] hover:text-red-600 shadow-sm transition-colors"
           >
             <Trash2 size={14} />
           </button>
         </div>
       </div>
-
-      {/* Body */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-[var(--ink)] text-[15.5px] leading-tight truncate">
+      <div className="p-4! flex-1 flex flex-col">
+        <p className="text-[14.5px] font-semibold text-[var(--ink)] leading-tight truncate">
           {agent.name}
-        </h3>
-        <p className="text-[13px] text-[var(--slate)] mt-1.5! line-clamp-2 leading-relaxed">
+        </p>
+        <p className="text-[12.5px] text-[var(--slate)] mt-1! line-clamp-2 leading-snug flex-1">
           {agent.description || "No description provided."}
         </p>
-
-        <div className="flex flex-wrap items-center gap-2 mt-4!">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-2! py-1! rounded-full capitalize">
-            <Cpu size={11} /> {agent.llm_provider}
+        <Link href={`/dashboard/agents/${agent.id}/test`} className="mt-3.5! block">
+          <span className="flex items-center justify-center gap-2! w-full! py-2! bg-[var(--violet-050)] hover:bg-[var(--violet-100)] text-[var(--violet-700)] font-semibold text-[12.5px] rounded-lg border border-[var(--violet-100)] transition-colors">
+            <Mic size={13} /> Launch sandbox
           </span>
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--slate)] bg-[var(--line-soft)] border border-[var(--line)] px-2! py-1! rounded-full">
-            {agent.language}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2! py-1! rounded-full ${
-              agent.is_active
-                ? "text-emerald-700 bg-emerald-50 border border-emerald-100"
-                : "text-gray-500 bg-gray-50 border border-gray-100"
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${agent.is_active ? "bg-emerald-500" : "bg-gray-300"}`}
-            />
-            {agent.is_active ? "Active" : "Idle"}
-          </span>
-        </div>
+        </Link>
       </div>
-
-      <Link href={`/dashboard/agents/${agent.id}/test`} className="mt-5! block">
-        <button className="w-full py-2.5! bg-[var(--violet-050)] hover:bg-[var(--violet-100)] text-[var(--violet-700)] font-semibold text-xs rounded-xl border border-[var(--violet-100)] flex items-center justify-center gap-2 transition-colors">
-          <Mic size={14} /> Launch sandbox
-        </button>
-      </Link>
     </motion.div>
   );
 }
 
-// ── Create Agent Wizard (4 Steps) ─────────────────────────────────────────────
+// ── Create wizard ────────────────────────────────────────────────────────────
+type Tab = "Avatar" | "Voice" | "Behavior" | "Knowledge" | "Conversation";
+const TABS: Tab[] = ["Avatar", "Voice", "Behavior", "Knowledge", "Conversation"];
 
-function CreateAgentView({
-  onBack,
-  onSuccess,
+interface StagedFile {
+  file: File;
+  error?: string;
+}
+
+function CreateWizard({
+  template,
+  onClose,
+  onCreated,
 }: {
-  onBack: () => void;
-  onSuccess: () => void;
+  template?: Template;
+  onClose: () => void;
+  onCreated: () => void;
 }) {
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const { showToast } = useToast();
+  const [tab, setTab] = useState<Tab>("Avatar");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
-  const [createdKbId, setCreatedKbId] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"edit" | "embed">("edit");
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [avatars, setAvatars] = useState<AvatarOption[]>([]);
-  const [loadingAvatars, setLoadingAvatars] = useState(true);
 
   const [form, setForm] = useState({
-    name: "",
+    name: template?.name ?? "",
     description: "",
+    musetalk_avatar_id: template?.musetalk_avatar_id ?? "ava",
     language: "en",
-    voice_id: "",
+    voice_id: template?.voice_id ?? "",
+    pronunciation: false,
+    agent_role: "",
+    personality: template?.personality ?? PERSONALITIES[0],
     system_prompt:
-      "You are a professional AI Support Desk Assistant designed to help users resolve issues...",
+      template?.system_prompt ??
+      "You are a professional, friendly AI assistant. Help users clearly and concisely. Ask a clarifying question when you're unsure.",
     llm_model: "gpt-4o",
     llm_provider: "openai",
-    is_public: true,
-    avatar_id: "",
-    musetalk_avatar_id: "ava",
+    knowledge_mode: "hybrid" as "hybrid" | "strict",
+    creativity: 0.4,
+    // conversation
+    enable_camera: true,
+    topics: [] as string[],
+    max_words: null as number | null,
+    feedback_screen: false,
+    agent_memory: false,
+    share_memory: false,
   });
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
 
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  // Staged knowledge (flushed to the KB after the agent is created)
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [stagedText, setStagedText] = useState("");
+  const [stagedUrl, setStagedUrl] = useState("");
+
+  // Voice preview
+  const [playing, setPlaying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) audioRef.current.pause();
-    };
-  }, []);
-
-  const set = (k: string, v: any) => setForm((prev) => ({ ...prev, [k]: v }));
-
-  const handleTogglePreview = (
-    e: React.MouseEvent,
-    voiceId: string,
-    url: string,
-  ) => {
-    e.stopPropagation();
-    if (playingVoiceId === voiceId) {
+  useEffect(() => () => audioRef.current?.pause(), []);
+  const togglePreview = (id: string, url: string) => {
+    if (playing === id) {
       audioRef.current?.pause();
-      setPlayingVoiceId(null);
-    } else {
-      if (audioRef.current) audioRef.current.pause();
-      // previewUrl is stored relative ("./voice/x.wav"); resolve to the public
-      // root so it plays from any dashboard route (not /dashboard/voice/...).
-      const src = url.replace(/^\.?\/*/, "/");
-      const audio = new Audio(src);
-      audioRef.current = audio;
-      setPlayingVoiceId(voiceId);
-      audio.play().catch(() => setPlayingVoiceId(null));
-      audio.onended = () => setPlayingVoiceId(null);
-      audio.onerror = () => setPlayingVoiceId(null);
+      setPlaying(null);
+      return;
+    }
+    audioRef.current?.pause();
+    const audio = new Audio(url.replace(/^\.?\/*/, "/"));
+    audioRef.current = audio;
+    setPlaying(id);
+    audio.play().catch(() => setPlaying(null));
+    audio.onended = () => setPlaying(null);
+    audio.onerror = () => setPlaying(null);
+  };
+
+  const composePrompt = () => {
+    const pre: string[] = [];
+    if (form.agent_role.trim()) pre.push(`Your role: ${form.agent_role.trim()}.`);
+    if (form.personality) pre.push(`Your personality: ${form.personality}.`);
+    const post: string[] = [];
+    if (form.topics.length)
+      post.push(`Never discuss these topics: ${form.topics.join(", ")}.`);
+    if (form.max_words)
+      post.push(`Keep every response under ${form.max_words} words.`);
+    return [pre.join(" "), form.system_prompt.trim(), post.join(" ")]
+      .filter(Boolean)
+      .join("\n\n");
+  };
+
+  const flushKnowledge = async (agentId: string) => {
+    const hasKnowledge =
+      stagedFiles.some((f) => !f.error) || stagedText.trim() || stagedUrl.trim();
+    if (!hasKnowledge) return;
+    try {
+      const kb = await apiClient.post<{ id: string }>(
+        `/api/knowledge/agents/${agentId}/kb/`,
+        { name: "Main Knowledge Base", description: "Auto-created knowledge base" },
+      );
+      const kbId = kb?.id;
+      // Files
+      for (const sf of stagedFiles) {
+        if (sf.error) continue;
+        const fd = new FormData();
+        fd.append("file", sf.file);
+        await apiClient
+          .postForm(`/api/knowledge/agents/${agentId}/kb/${kbId}/documents`, fd)
+          .catch(() => {});
+      }
+      // Pasted text
+      if (stagedText.trim()) {
+        const blob = new Blob([stagedText], { type: "text/plain" });
+        const fd = new FormData();
+        fd.append("file", blob, "pasted_text.txt");
+        await apiClient
+          .postForm(`/api/knowledge/agents/${agentId}/kb/${kbId}/documents`, fd)
+          .catch(() => {});
+      }
+      // Website crawl
+      if (stagedUrl.trim()) {
+        await apiClient
+          .post(`/api/knowledge/agents/${agentId}/kb/from-url`, {
+            url: stagedUrl.trim(),
+            restrict_to_knowledge: form.knowledge_mode === "strict",
+          })
+          .catch(() => {});
+      }
+    } catch {
+      /* best-effort — agent is created regardless */
     }
   };
 
-  // Create agent (called from step 2 "Finish" button)
-  const handleCreateAgent = async () => {
-    if (!form.name.trim()) return setError("Agent name is required.");
+  const handleCreate = async () => {
+    if (!form.name.trim()) {
+      setTab("Avatar");
+      setError("Give your agent a name first.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      const res = await apiClient.post<any>("/api/agents/", form);
-      const agentId = res?.id ?? "fallback-id";
-      setCreatedAgentId(agentId);
-
-      // Eagerly create the default KB so step 3 can upload immediately
-      const kb = await apiClient.post<any>(
-        `/api/knowledge/agents/${agentId}/kb/`,
-        {
-          name: "Main Knowledge Base",
-          description: "Auto-created knowledge base",
-        },
-      );
-      setCreatedKbId(kb?.id ?? null);
-      setCurrentStep(3);
-    } catch (e: any) {
-      setError(e.message ?? "Failed to create agent");
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        language: form.language,
+        voice_id: form.voice_id,
+        system_prompt: composePrompt(),
+        llm_model: form.llm_model,
+        llm_provider: form.llm_provider,
+        is_public: true,
+        avatar_id: "",
+        musetalk_avatar_id: form.musetalk_avatar_id,
+      };
+      const res = await apiClient.post<{ id: string }>("/api/agents/", payload);
+      const id = res?.id ?? "";
+      setCreatedId(id);
+      await flushKnowledge(id);
+      setPhase("embed");
+      showToast({ type: "success", title: "Agent created" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create agent.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStepClick = (step: 1 | 2 | 3 | 4) => {
-    if (step >= 3 && !createdAgentId) return;
-    setCurrentStep(step);
+  const goNext = () => {
+    const i = TABS.indexOf(tab);
+    if (i < TABS.length - 1) setTab(TABS[i + 1]);
+    else handleCreate();
+  };
+  const goBack = () => {
+    const i = TABS.indexOf(tab);
+    if (i > 0) setTab(TABS[i - 1]);
   };
 
-  const STEPS = [
-    { step: 1 as const, icon: <Settings size={16} />, label: "Configuration" },
-    { step: 2 as const, icon: <User size={16} />, label: "Avatars" },
-    { step: 3 as const, icon: <BookOpen size={16} />, label: "Knowledge Base" },
-    { step: 4 as const, icon: <Code size={16} />, label: "Embed Code" },
-  ];
-
-  const embedCode = `<!-- VoiceAgent Embeddable Assistant Widget -->
-  <script src="${typeof window !== "undefined" ? window.location.origin : ""}/components/widget/widget.js" async>
-  </script>
-
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const embedCode = `<!-- AVAT Avatar embeddable widget -->
+<script src="${origin}/components/widget/widget.js" async></script>
 <script>
   window.VoiceAgentConfig = {
-    agentId: "${createdAgentId}",
-    apiUrl: "${typeof window !== "undefined" ? window.location.origin : ""}"
+    agentId: "${createdId}",
+    apiUrl: "${origin}"
   };
-</script>
-`;
+</script>`;
 
-  return (
-    <div className="w-full m-2!">
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed! inset-0! z-[9998] bg-white flex flex-col"
+    >
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-4! ">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2! -ml-2! rounded-lg text-gray-500 hover:text-black hover:bg-gray-100 transition-all"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="text-xl font-semibold text-gray-900">
-            {form.name || "New Agent"}
-          </h2>
-        </div>
-        {currentStep < 3 && (
-          <button
-            onClick={
-              currentStep === 2 ? handleCreateAgent : () => setCurrentStep(2)
-            }
-            disabled={saving}
-            className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4! py-2! rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-all disabled:opacity-60"
-          >
-            <Save size={16} /> {saving ? "Saving…" : "Save Changes"}
-          </button>
-        )}
-        {currentStep === 3 && (
-          <button
-            onClick={() => setCurrentStep(4)}
-            className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4! py-2! rounded-lg flex items-center gap-2 text-sm font-medium"
-          >
-            Continue to Embed <ChevronDown size={16} className="-rotate-90" />
-          </button>
-        )}
-      </div>
-
-      {/* Stepper */}
-      <div className="flex items-center gap-8 border-b border-gray-200 mb-8 bg-white px-6 rounded-t-xl shadow-sm p-5! ">
-        {STEPS.map((s) => (
-          <StepItem
-            key={s.step}
-            step={s.step}
-            currentStep={currentStep}
-            icon={s.icon}
-            label={s.label}
-            onClick={() => handleStepClick(s.step)}
-          />
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
+      <header className="h-[64px]! shrink-0 border-b border-[var(--line)] flex items-center px-4! md:px-6! gap-4!">
+        <button
+          onClick={onClose}
+          className="w-9! h-9! grid place-items-center rounded-lg text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--sidebar-hover)] transition-colors shrink-0"
         >
-          {error && (
-            <div className="px-4 py-3 mb-6 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
-              <Shield size={16} /> {error}
-            </div>
-          )}
+          <ChevronLeft size={20} />
+        </button>
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold text-[var(--ink)] leading-tight truncate">
+            {form.name || "New agent"}
+          </p>
+          <p className="text-[12px] text-[var(--muted)] leading-tight truncate">
+            {form.description || "Add a description…"}
+          </p>
+        </div>
 
-          {/* ── STEP 1: CONFIGURATION ── */}
-          {currentStep === 1 && (
-            <div className="space-y-6 m-2!">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card
-                  title="Basic Information"
-                  icon={<Info size={16} className="text-[#7c3aed]" />}
+        {phase === "edit" && (
+          <>
+            <nav className="hidden lg:flex items-center gap-1! mx-auto!">
+              {TABS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-3.5! py-2! rounded-lg text-[13.5px] font-semibold transition-colors ${
+                    tab === t
+                      ? "text-[var(--violet-700)]"
+                      : "text-[var(--slate)] hover:text-[var(--ink)]"
+                  }`}
                 >
-                  <div className="space-y-4!">
-                    <Field label="Chatbot Name *">
-                      <input
-                        value={form.name}
-                        onChange={(e) => set("name", e.target.value)}
-                        placeholder="Support Desk 1"
-                        className={inp}
-                      />
-                    </Field>
-                    <Field label="Description">
-                      <textarea
-                        value={form.description}
-                        onChange={(e) => set("description", e.target.value)}
-                        rows={4}
-                        className={`${inp} resize-none`}
-                      />
-                    </Field>
-                  </div>
-                </Card>
-                <Card
-                  title="AI Configuration"
-                  icon={<Settings size={16} className="text-[#7c3aed]" />}
-                >
-                  <Field label="System Prompt *">
-                    <textarea
-                      value={form.system_prompt}
-                      onChange={(e) => set("system_prompt", e.target.value)}
-                      rows={9}
-                      className={`${inp} resize-none bg-gray-50`}
+                  {t}
+                  {tab === t && (
+                    <motion.span
+                      layoutId="wizard-tab"
+                      className="block h-[2px]! rounded-full mt-1!"
+                      style={{ background: "var(--grad)" }}
                     />
-                  </Field>
-                </Card>
-              </div>
-              <Card
-                title="Model Settings"
-                icon={<Settings size={16} className="text-[#7c3aed]" />}
-                className="!mt-6"
+                  )}
+                </button>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2! ml-auto lg:ml-0 shrink-0">
+              <button
+                onClick={onClose}
+                className="px-4! py-2! rounded-lg border border-[var(--line)] text-[13.5px] font-semibold text-[var(--slate)] hover:bg-[var(--sidebar-hover)] transition-colors"
               >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 ">
-                  <Field label="Voice">
-                    <div className="relative">
-                      <select
-                        value={form.voice_id}
-                        onChange={(e) => set("voice_id", e.target.value)}
-                        className={`${inp} appearance-none pr-10`}
-                      >
-                        <option value="">Select a voice timbre</option>
-                        {CARTESIA_VOICES.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.name} ({v.description})
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ChevronDown size={16} className="text-gray-400" />
-                      </div>
-                      {form.voice_id && (
-                        <button
-                          onClick={(e) => {
-                            const v = CARTESIA_VOICES.find(
-                              (x) => x.id === form.voice_id,
-                            );
-                            if (v) handleTogglePreview(e, v.id, v.previewUrl);
-                          }}
-                          className="mt-3 flex items-center gap-2 text-xs font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)] transition-colors"
-                        >
-                          {playingVoiceId === form.voice_id ? (
-                            <Pause size={14} fill="currentColor" />
-                          ) : (
-                            <Play size={14} fill="currentColor" />
-                          )}
-                          {playingVoiceId === form.voice_id
-                            ? "Stop preview"
-                            : "Preview selected voice"}
-                        </button>
-                      )}
-                    </div>
-                  </Field>
-                  <Field label="Language">
-                    <div className="relative">
-                      <select
-                        value={form.language}
-                        onChange={(e) => set("language", e.target.value)}
-                        className={`${inp} appearance-none pr-10`}
-                      >
-                        {LANGUAGES.map((l) => (
-                          <option key={l.value} value={l.value}>
-                            {l.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown
-                        size={16}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
-                      />
-                    </div>
-                  </Field>
-                </div>
-              </Card>
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setCurrentStep(2)}
-                  className="bg-[#7c3aed] text-white px-8 py-2.5 rounded-lg font-medium"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 2: AVATARS ── */}
-          {/* ── STEP 2: AVATARS ── */}
-          {currentStep === 2 && (
-            <div className="space-y-6">
-              <Card
-                title="Choose Avatar"
-                icon={<User size={16} className="text-[#7c3aed]" />}
-              >
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {MUSETALK_AVATARS.map((av) => (
-                    <AvatarCard
-                      key={av.id}
-                      avatar={av}
-                      previewUrl={av.preview_url}
-                      selected={form.musetalk_avatar_id === av.id}
-                      onClick={() => set("musetalk_avatar_id", av.id)}
-                    />
-                  ))}
-                </div>
-              </Card>
-              <div className="flex justify-between">
-                <Button
-                  onClick={() => setCurrentStep(1)}
-                  className="bg-white! text-white-700! px-8 py-2.5 border border-gray-300 rounded-lg font-medium"
+                Cancel
+              </button>
+              {tab !== "Avatar" && (
+                <button
+                  onClick={goBack}
+                  className="px-4! py-2! rounded-lg border border-[var(--line)] text-[13.5px] font-semibold text-[var(--slate)] hover:bg-[var(--sidebar-hover)] transition-colors"
                 >
                   Back
-                </Button>
-                <Button
-                  onClick={handleCreateAgent}
-                  disabled={saving}
-                  className="bg-[#7c3aed] text-white px-8 py-2.5 rounded-lg font-medium disabled:opacity-60"
-                >
-                  {saving ? "Creating…" : "Create Agent →"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── STEP 3: KNOWLEDGE BASE ── */}
-          {currentStep === 3 && createdAgentId && (
-            <KnowledgeBaseStep
-              agentId={createdAgentId}
-              kbId={createdKbId}
-              onKbCreated={setCreatedKbId}
-              onContinue={() => setCurrentStep(4)}
-              onBack={() => setCurrentStep(2)}
-            />
-          )}
-
-          {/* ── STEP 4: EMBED CODE ── */}
-          {currentStep === 4 && (
-            <div className="space-y-6 mt-2!">
-              <Card
-                title="Embed Code"
-                icon={<Code size={16} className="text-[#7c3aed]" />}
+                </button>
+              )}
+              <button
+                onClick={goNext}
+                disabled={saving}
+                className="btn-dark px-5! py-2! text-[13.5px]"
               >
-                <div className="bg-[#f0f7ff] p-4! rounded-xl mb-6! text-[#0c4a6e] flex gap-3">
-                  <Info size={20} className="shrink-0 text-blue-500" />
-                  <div>
-                    <p className="font-medium mb-1">Implementation Guide:</p>
-                    <ol className="list-decimal list-inside text-sm opacity-80">
-                      <li>Copy the script tag below</li>
-                      <li>
-                        Paste it into your index.html just before the
-                        &lt;/body&gt; tag
-                      </li>
-                    </ol>
-                  </div>
-                </div>
-                <div className="bg-[#1a1a1a] p-5! rounded-2xl mb-6! font-mono text-sm text-green-400 overflow-x-auto">
-                  {embedCode}
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(embedCode);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="bg-[#7c3aed] text-white px-6! py-2.5! rounded-lg flex items-center gap-2"
-                >
-                  <Copy size={18} /> {copied ? "Copied!" : "Copy Embed Code"}
-                </button>
-              </Card>
-              <div className="flex justify-end gap-3 mt-5!">
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="px-6! py-2.5! border border-gray-300 rounded-lg font-medium text-sm"
-                >
-                  ← Back to Knowledge Base
-                </button>
-                <button
-                  onClick={onSuccess}
-                  className="bg-green-600 hover:bg-green-700 rounded-lg text-white px-8! py-2.5!rounded-lg font-medium text-sm"
-                >
-                  Done
-                </button>
-              </div>
+                {saving
+                  ? "Creating…"
+                  : tab === "Conversation"
+                    ? "Create agent"
+                    : "Next"}
+              </button>
             </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Knowledge Base Step ───────────────────────────────────────────────────────
-
-function KnowledgeBaseStep({
-  agentId,
-  kbId,
-  onKbCreated,
-  onContinue,
-  onBack,
-}: {
-  agentId: string;
-  kbId: string | null;
-  onKbCreated: (id: string) => void;
-  onContinue: () => void;
-  onBack: () => void;
-}) {
-  const [docs, setDocs] = useState<UploadedDoc[]>([]);
-  const [dragging, setDragging] = useState(false);
-  const [mode, setMode] = useState<"upload" | "text" | "url">("upload");
-  const [rawText, setRawText] = useState("");
-  const [textName, setTextName] = useState("custom_text.txt");
-  const [submittingText, setSubmittingText] = useState(false);
-  const [kbName] = useState("Main Knowledge Base");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // Poll interval refs keyed by doc id
-  const pollRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
-
-  // ── Website crawler state ───────────────────────────────────────────────────
-  const [siteUrl, setSiteUrl] = useState("");
-  const [restrictScope, setRestrictScope] = useState(true);
-  const [crawlSubmitting, setCrawlSubmitting] = useState(false);
-  const [crawlError, setCrawlError] = useState<string | null>(null);
-  const [siteKbs, setSiteKbs] = useState<WebsiteKB[]>([]);
-  const sitePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const anyCrawling = (list: WebsiteKB[]) =>
-    list.some((k) => !CRAWL_DONE.has((k.crawl_status || "").toLowerCase()));
-
-  const stopSitePoll = useCallback(() => {
-    if (sitePollRef.current) {
-      clearInterval(sitePollRef.current);
-      sitePollRef.current = null;
-    }
-  }, []);
-
-  const loadSiteStatus = useCallback(async (): Promise<WebsiteKB[]> => {
-    try {
-      const list = await apiClient.get<WebsiteKB[]>(
-        `/api/knowledge/agents/${agentId}/kb/from-url/status`,
-      );
-      setSiteKbs(list || []);
-      if (!anyCrawling(list || [])) stopSitePoll();
-      return list || [];
-    } catch {
-      return [];
-    }
-  }, [agentId, stopSitePoll]);
-
-  const startSitePoll = useCallback(() => {
-    if (sitePollRef.current) return;
-    sitePollRef.current = setInterval(loadSiteStatus, 3500);
-  }, [loadSiteStatus]);
-
-  const startCrawl = async () => {
-    const url = siteUrl.trim();
-    if (!url) return;
-    setCrawlSubmitting(true);
-    setCrawlError(null);
-    try {
-      await apiClient.post(`/api/knowledge/agents/${agentId}/kb/from-url`, {
-        url,
-        restrict_to_knowledge: restrictScope,
-      });
-      setSiteUrl("");
-      await loadSiteStatus();
-      startSitePoll();
-    } catch (e: any) {
-      setCrawlError(e?.message ?? "Failed to start the crawl.");
-    } finally {
-      setCrawlSubmitting(false);
-    }
-  };
-
-  const recrawlSite = async (id: string) => {
-    setSiteKbs((prev) =>
-      prev.map((k) => (k.id === id ? { ...k, crawl_status: "pending" } : k)),
-    );
-    try {
-      await apiClient.post(
-        `/api/knowledge/agents/${agentId}/kb/${id}/recrawl`,
-        {},
-      );
-    } catch {
-      /* best-effort */
-    }
-    await loadSiteStatus();
-    startSitePoll();
-  };
-
-  // Load existing website KBs on mount; resume polling if any are still crawling.
-  useEffect(() => {
-    loadSiteStatus().then((list) => {
-      if (anyCrawling(list)) startSitePoll();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadSiteStatus, startSitePoll]);
-
-  // Cleanup all polls on unmount
-  useEffect(
-    () => () => {
-      Object.values(pollRefs.current).forEach(clearInterval);
-      if (sitePollRef.current) clearInterval(sitePollRef.current);
-    },
-    [],
-  );
-
-  // ── Ensure KB exists (it was created in parent, but guard here too) ─────────
-  const ensureKb = useCallback(async (): Promise<string> => {
-    if (kbId) return kbId;
-    const kb = await apiClient.post<any>(
-      `/api/knowledge/agents/${agentId}/kb/`,
-      {
-        name: kbName,
-        description: "Auto-created knowledge base",
-      },
-    );
-    onKbCreated(kb.id);
-    return kb.id;
-  }, [kbId, agentId, kbName, onKbCreated]);
-
-  // ── Poll a single doc until ready/error ─────────────────────────────────────
-  const pollDoc = (currentKbId: string, docId: string) => {
-    if (pollRefs.current[docId]) return; // already polling
-    pollRefs.current[docId] = setInterval(async () => {
-      try {
-        const d = await apiClient.get<UploadedDoc>(
-          `/api/knowledge/agents/${agentId}/kb/${currentKbId}/documents/${docId}`,
-        );
-        setDocs((prev) =>
-          prev.map((doc) =>
-            doc.id === docId ? { ...doc, status: d.status } : doc,
-          ),
-        );
-        if (d.status === "ready" || d.status === "error") {
-          clearInterval(pollRefs.current[docId]);
-          delete pollRefs.current[docId];
-        }
-      } catch {
-        /* silently ignore poll errors */
-      }
-    }, 3000);
-  };
-
-  // ── Upload a single File object ──────────────────────────────────────────────
-  const uploadFile = async (file: File) => {
-    // Client-side validation
-    const isAllowedType =
-      ALLOWED_MIME_TYPES.has(file.type) ||
-      [".pdf", ".txt", ".md", ".docx"].some((ext) =>
-        file.name.toLowerCase().endsWith(ext),
-      );
-    if (!isAllowedType) {
-      setDocs((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          filename: file.name,
-          status: "error",
-          uploadError: `Unsupported type. Allowed: ${ALLOWED_EXT_LABEL}`,
-        },
-      ]);
-      return;
-    }
-    if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      setDocs((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          filename: file.name,
-          status: "error",
-          uploadError: `Exceeds ${MAX_FILE_MB} MB limit`,
-        },
-      ]);
-      return;
-    }
-
-    // Optimistic placeholder
-    const tempId = crypto.randomUUID();
-    setDocs((prev) => [
-      ...prev,
-      { id: tempId, filename: file.name, status: "pending", uploading: true },
-    ]);
-
-    try {
-      const currentKbId = await ensureKb();
-      const fd = new FormData();
-      fd.append("file", file);
-
-      const result = await apiClient.postForm<UploadedDoc>(
-        `/api/knowledge/agents/${agentId}/kb/${currentKbId}/documents`,
-        fd,
-      );
-
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === tempId
-            ? {
-                id: result.id,
-                filename: result.filename,
-                status: result.status,
-                file_size: result.file_size,
-                content_type: result.content_type,
-              }
-            : d,
-        ),
-      );
-      // Start polling for indexing progress
-      pollDoc(currentKbId, result.id);
-    } catch (err: any) {
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === tempId
-            ? {
-                ...d,
-                uploading: false,
-                status: "error",
-                uploadError: err.message ?? "Upload failed",
-              }
-            : d,
-        ),
-      );
-    }
-  };
-
-  // ── Handle file input / drag-drop ────────────────────────────────────────────
-  const handleFiles = (files: FileList | null) => {
-    if (!files) return;
-    Array.from(files).forEach(uploadFile);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    handleFiles(e.dataTransfer.files);
-  };
-
-  // ── Submit plain text ────────────────────────────────────────────────────────
-  const handleSubmitText = async () => {
-    if (!rawText.trim()) return;
-    setSubmittingText(true);
-    const tempId = crypto.randomUUID();
-    const name = textName.trim() || "custom_text.txt";
-    setDocs((prev) => [
-      ...prev,
-      { id: tempId, filename: name, status: "pending", uploading: true },
-    ]);
-    try {
-      const currentKbId = await ensureKb();
-      // Send as a plain-text file blob so it goes through the same upload route
-      const blob = new Blob([rawText], { type: "text/plain" });
-      const fd = new FormData();
-      fd.append("file", blob, name);
-
-      const result = await apiClient.postForm<UploadedDoc>(
-        `/api/agents/${agentId}/kb/${currentKbId}/documents`,
-        fd,
-      );
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === tempId
-            ? {
-                id: result.id,
-                filename: result.filename,
-                status: result.status,
-                file_size: result.file_size,
-                content_type: result.content_type,
-              }
-            : d,
-        ),
-      );
-      pollDoc(currentKbId, result.id);
-      setRawText("");
-      setTextName("custom_text.txt");
-      setMode("upload");
-    } catch (err: any) {
-      setDocs((prev) =>
-        prev.map((d) =>
-          d.id === tempId
-            ? {
-                ...d,
-                uploading: false,
-                status: "error",
-                uploadError: err.message ?? "Failed",
-              }
-            : d,
-        ),
-      );
-    } finally {
-      setSubmittingText(false);
-    }
-  };
-
-  // ── Remove a doc row ─────────────────────────────────────────────────────────
-  const removeDoc = async (doc: UploadedDoc) => {
-    if (pollRefs.current[doc.id]) {
-      clearInterval(pollRefs.current[doc.id]);
-      delete pollRefs.current[doc.id];
-    }
-    setDocs((prev) => prev.filter((d) => d.id !== doc.id));
-    if (kbId && !doc.uploading) {
-      try {
-        await apiClient.delete(
-          `/api/knowledge/agents/${agentId}/kb/${kbId}/documents/${doc.id}`,
-        );
-      } catch {
-        /* best-effort */
-      }
-    }
-  };
-
-  const allReady =
-    docs.length > 0 &&
-    docs.every((d) => d.status === "ready" || d.status === "error");
-  const anyBusy = docs.some(
-    (d) => d.status === "pending" || d.status === "processing" || d.uploading,
-  );
-
-  return (
-    <div className="space-y-6 m-3!">
-      <Card
-        title="Knowledge Base"
-        icon={<BookOpen size={16} className="text-[#7c3aed]" />}
-      >
-        {/* Info banner */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex gap-3 text-blue-800 my-2!">
-          <Info size={18} className="shrink-0 mt-0.5 text-blue-500" />
-          <div className="text-sm">
-            <p className="font-medium mb-1">
-              Optional — add documents your agent can reference
-            </p>
-            <p className="opacity-75">
-              Upload PDFs, text files, Word docs, or paste raw text. The agent
-              will search these during conversations and cite source filenames.
-              You can skip this step and add documents later from the agent
-              settings.
-            </p>
-          </div>
-        </div>
-
-        {/* Toggle: File upload vs Plain text vs Website crawl */}
-        <div className="flex flex-wrap gap-2! mb-6!">
-          {(
-            [
-              { key: "upload", label: "Upload Files", icon: <Upload size={14} /> },
-              { key: "text", label: "Paste Text", icon: <Type size={14} /> },
-              { key: "url", label: "Crawl Website", icon: <Globe size={14} /> },
-            ] as const
-          ).map((m) => (
-            <button
-              key={m.key}
-              onClick={() => setMode(m.key)}
-              className={`flex items-center gap-2! px-4! py-2! rounded-lg text-sm font-medium border transition-all ${
-                mode === m.key
-                  ? "bg-[#7c3aed] text-white border-[#7c3aed]"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              {m.icon} {m.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── File Upload Area ── */}
-        {mode === "upload" && (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all mb-6 ${
-              dragging
-                ? "border-[#7c3aed] bg-blue-50"
-                : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
-            }`}
-          >
-            <div
-              className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-colors ${dragging ? "bg-blue-100 text-[#7c3aed]" : "bg-white border border-gray-200 text-gray-400"}`}
-            >
-              <Upload size={24} />
-            </div>
-            <p className="text-sm font-semibold text-gray-700 mb-1">
-              {dragging ? "Drop files here" : "Drag & drop files here"}
-            </p>
-            <p className="text-xs text-gray-400">
-              or click to browse · {ALLOWED_EXT_LABEL} · max {MAX_FILE_MB} MB
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              accept=".pdf,.txt,.md,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={(e) => handleFiles(e.target.files)}
-            />
-          </div>
+          </>
         )}
+      </header>
 
-        {/* ── Plain Text Input ── */}
-        {mode === "text" && (
-          <div className="space-y-4 mb-6">
-            <Field label="Document Name">
-              <input
-                value={textName}
-                onChange={(e) => setTextName(e.target.value)}
-                placeholder="e.g. faq.txt"
-                className={inp}
-              />
-            </Field>
-            <Field label="Content">
-              <textarea
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                rows={10}
-                placeholder="Paste or type your content here…"
-                className={`${inp} resize-y font-mono text-xs`}
-              />
-            </Field>
-            <button
-              onClick={handleSubmitText}
-              disabled={!rawText.trim() || submittingText}
-              className="flex items-center gap-2 bg-[#7c3aed] text-white px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
-            >
-              {submittingText ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Plus size={16} />
-              )}
-              {submittingText ? "Uploading…" : "Add to Knowledge Base"}
-            </button>
-          </div>
-        )}
-
-        {/* ── Website Crawler ── */}
-        {mode === "url" && (
-          <div className="space-y-4! mb-6!">
-            <Field label="Website URL">
-              <div className="relative">
-                <Link2
-                  size={15}
-                  className="absolute left-3.5! top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
-                <input
-                  value={siteUrl}
-                  onChange={(e) => setSiteUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && siteUrl.trim() && !crawlSubmitting)
-                      startCrawl();
-                  }}
-                  placeholder="https://yourcompany.com"
-                  className={`${inp} pl-10!`}
-                  type="url"
-                  inputMode="url"
-                />
-              </div>
-            </Field>
-
-            <label className="flex items-start gap-2.5! cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={restrictScope}
-                onChange={(e) => setRestrictScope(e.target.checked)}
-                className="mt-0.5! w-4! h-4! accent-[#7c3aed]"
-              />
-              <span className="text-[13px] text-gray-600 leading-snug">
-                <span className="font-medium text-gray-800">
-                  Only answer from this website
-                </span>{" "}
-                — locks the agent to the crawled content instead of general
-                knowledge.
-              </span>
-            </label>
-
-            {crawlError && (
-              <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3.5! py-2.5!">
-                <AlertCircle size={15} className="shrink-0" /> {crawlError}
-              </div>
-            )}
-
-            <button
-              onClick={startCrawl}
-              disabled={!siteUrl.trim() || crawlSubmitting}
-              className="flex items-center gap-2! bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-5! py-2.5! rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
-            >
-              {crawlSubmitting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Globe size={16} />
-              )}
-              {crawlSubmitting ? "Starting crawl…" : "Crawl website"}
-            </button>
-
-            <p className="text-xs text-gray-400 leading-relaxed">
-              We read the sitemap first, then follow same-site links · up to 60
-              pages / depth 3 · respects robots.txt · every page is cited by its
-              exact URL.
-            </p>
-          </div>
-        )}
-
-        {/* ── Crawled sites list ── */}
-        {siteKbs.length > 0 && (
-          <div className="space-y-2! mb-2!">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3!">
-              Websites ({siteKbs.length})
-            </p>
-            {siteKbs.map((kb) => {
-              const st = (kb.crawl_status || "").toLowerCase();
-              const done = st === "ready";
-              const failed = st === "error" || st === "failed";
-              return (
-                <div
-                  key={kb.id}
-                  className={`flex items-center gap-3! px-4! py-3! rounded-xl border transition-colors ${
-                    failed
-                      ? "bg-red-50 border-red-200"
-                      : done
-                        ? "bg-green-50 border-green-200"
-                        : "bg-white border-gray-200"
-                  }`}
-                >
-                  <div className="w-8! h-8! rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                    <Globe size={16} className="text-gray-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {kb.source_url}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {done
-                        ? `${kb.pages_indexed} page${kb.pages_indexed === 1 ? "" : "s"} indexed`
-                        : failed
-                          ? kb.crawl_error || "Crawl failed"
-                          : "Crawling…"}
-                    </p>
-                  </div>
-
-                  {/* Status badge */}
-                  {done ? (
-                    <span className="flex items-center gap-1.5! text-xs font-medium text-green-700 bg-green-100 px-2.5! py-1! rounded-full">
-                      <CheckCircle2 size={11} /> Ready
-                    </span>
-                  ) : failed ? (
-                    <span className="flex items-center gap-1.5! text-xs font-medium text-red-600 bg-red-100 px-2.5! py-1! rounded-full">
-                      <AlertCircle size={11} /> Error
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5! text-xs font-medium text-amber-600 bg-amber-50 px-2.5! py-1! rounded-full">
-                      <Loader2 size={11} className="animate-spin" /> Crawling
-                    </span>
-                  )}
-
-                  {/* Recrawl */}
-                  {(done || failed) && (
-                    <button
-                      onClick={() => recrawlSite(kb.id)}
-                      title="Re-crawl to refresh content"
-                      className="w-7! h-7! rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-[#7c3aed] transition-colors shrink-0"
-                    >
-                      <RotateCcw size={14} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Document List ── */}
-        {docs.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Documents ({docs.length})
-            </p>
-            <AnimatePresence>
-              {docs.map((doc) => (
-                <motion.div
-                  key={doc.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-                    doc.status === "error"
-                      ? "bg-red-50 border-red-200"
-                      : doc.status === "ready"
-                        ? "bg-green-50 border-green-200"
-                        : "bg-white border-gray-200"
-                  }`}
-                >
-                  {/* File icon */}
-                  <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                    <FileText size={16} className="text-gray-500" />
-                  </div>
-
-                  {/* Name + size */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {doc.filename}
-                    </p>
-                    {doc.file_size && (
-                      <p className="text-xs text-gray-400">
-                        {(doc.file_size / 1024).toFixed(1)} KB
-                      </p>
-                    )}
-                    {doc.uploadError && (
-                      <p className="text-xs text-red-500 mt-0.5">
-                        {doc.uploadError}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Status badge */}
-                  <DocStatusBadge doc={doc} />
-
-                  {/* Remove button */}
+      {/* Body */}
+      {phase === "embed" ? (
+        <EmbedScreen
+          code={embedCode}
+          copied={copied}
+          onCopy={() => {
+            navigator.clipboard.writeText(embedCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          onDone={onCreated}
+        />
+      ) : (
+        <div className="flex-1 min-h-0 flex">
+          {/* Left: settings */}
+          <div className="flex-1 min-w-0 overflow-y-auto px-6! md:px-10! py-8!">
+            <div className="max-w-[620px]! mx-auto!">
+              {/* mobile tab pills */}
+              <div className="lg:hidden flex gap-1.5! overflow-x-auto no-scrollbar mb-6! pb-1!">
+                {TABS.map((t) => (
                   <button
-                    onClick={() => removeDoc(doc)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors shrink-0"
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-3! py-1.5! rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors ${
+                      tab === t
+                        ? "bg-[var(--ink)] text-white"
+                        : "bg-[var(--sidebar)] text-[var(--slate)]"
+                    }`}
                   >
-                    <X size={14} />
+                    {t}
                   </button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                ))}
+              </div>
 
-            {/* Indexing progress summary */}
-            {anyBusy && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 pt-2 pl-1">
-                <Loader2 size={13} className="animate-spin text-blue-500" />
-                Indexing in progress — you can continue to the next step
-              </div>
-            )}
-            {allReady && (
-              <div className="flex items-center gap-2 text-xs text-green-600 pt-2 pl-1">
-                <CheckCircle2 size={13} /> All documents indexed and ready
-              </div>
-            )}
+              {error && (
+                <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4! py-3! mb-6!">
+                  <AlertCircle size={15} className="shrink-0" /> {error}
+                </div>
+              )}
+
+              {tab === "Avatar" && (
+                <AvatarTab form={form} set={set} />
+              )}
+              {tab === "Voice" && (
+                <VoiceTab
+                  form={form}
+                  set={set}
+                  playing={playing}
+                  togglePreview={togglePreview}
+                />
+              )}
+              {tab === "Behavior" && <BehaviorTab form={form} set={set} />}
+              {tab === "Knowledge" && (
+                <KnowledgeTab
+                  form={form}
+                  set={set}
+                  stagedFiles={stagedFiles}
+                  setStagedFiles={setStagedFiles}
+                  stagedText={stagedText}
+                  setStagedText={setStagedText}
+                  stagedUrl={stagedUrl}
+                  setStagedUrl={setStagedUrl}
+                />
+              )}
+              {tab === "Conversation" && <ConversationTab form={form} set={set} />}
+            </div>
           </div>
-        )}
 
-        {/* Empty state */}
-        {docs.length === 0 && mode === "upload" && (
-          <p className="text-center text-xs text-gray-400 py-2!">
-            No documents yet — upload files, paste text, or crawl a website
-            above. You can also skip this step.
-          </p>
-        )}
-      </Card>
+          {/* Right: live preview */}
+          <AgentPreview
+            name={form.name || "Your agent"}
+            avatarUrl={avatarPreview(form.musetalk_avatar_id)}
+          />
+        </div>
+      )}
+    </motion.div>,
+    document.body,
+  );
+}
 
-      <div className="flex justify-between!">
-        <button
-          onClick={onBack}
-          className="px-8! py-2.5! border mt-5! border-gray-300 rounded-lg font-medium text-sm"
-        >
-          ← Back
-        </button>
-        <Button
-          onClick={onContinue}
-          className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-8 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2"
-        >
-          {docs.length === 0 ? "Skip for now" : "Continue →"}
-        </Button>
-      </div>
+// ── Wizard tabs ──────────────────────────────────────────────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function SectionHead({ title, desc }: { title: string; desc?: string }) {
+  return (
+    <div className="mb-6!">
+      <h2 className="text-[20px] font-semibold text-[var(--ink)] tracking-tight">
+        {title}
+      </h2>
+      {desc && <p className="text-[13.5px] text-[var(--slate)] mt-1!">{desc}</p>}
     </div>
   );
 }
 
-// ── Doc Status Badge ──────────────────────────────────────────────────────────
-
-function DocStatusBadge({ doc }: { doc: UploadedDoc }) {
-  if (doc.uploading)
-    return (
-      <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-        <Loader2 size={11} className="animate-spin" /> Uploading
-      </span>
-    );
-  if (doc.status === "pending")
-    return (
-      <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-        <Loader2 size={11} className="animate-spin" /> Queued
-      </span>
-    );
-  if (doc.status === "processing")
-    return (
-      <span className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-        <Loader2 size={11} className="animate-spin" /> Indexing
-      </span>
-    );
-  if (doc.status === "ready")
-    return (
-      <span className="flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
-        <CheckCircle2 size={11} /> Ready
-      </span>
-    );
+function Label({ children }: { children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-1.5 text-xs font-medium text-red-600 bg-red-50 px-2.5 py-1 rounded-full">
-      <AlertCircle size={11} /> Error
-    </span>
-  );
-}
-
-// ── Shared UI Components ─────────────────────────────────────────────────────
-
-function StepItem({ step, currentStep, icon, label, onClick }: any) {
-  const isActive = currentStep === step;
-  const isPast = currentStep > step;
-  return (
-    <div
-      onClick={onClick}
-      className={`flex items-center gap-2 py-4 border-b-2 transition-all cursor-pointer ${
-        isActive
-          ? "border-[#7c3aed]"
-          : "border-transparent opacity-60 hover:opacity-100"
-      }`}
-    >
-      <div
-        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-          isActive || isPast
-            ? "bg-[#7c3aed] text-white"
-            : "bg-gray-200 text-gray-500"
-        }`}
-      >
-        {isPast && !isActive ? <Check size={10} /> : step}
-      </div>
-      <div
-        className={`flex items-center gap-1.5 font-semibold text-sm ${
-          isActive || isPast ? "text-[#7c3aed]" : "text-gray-400"
-        }`}
-      >
-        {icon} {label}
-      </div>
-    </div>
-  );
-}
-
-function Card({ title, icon, children, className }: any) {
-  return (
-    <div
-      className={`bg-white border border-[var(--line)] rounded-2xl p-6! shadow-[var(--shadow-sm)] ${className || ""}`}
-    >
-      <div className="flex items-center gap-2 mb-6 text-[var(--violet-700)]">
-        {icon}{" "}
-        <h2 className="text-base font-semibold text-[var(--ink)]">{title}</h2>
-      </div>
+    <label className="block text-[13px] font-semibold text-[var(--ink)] mb-1.5!">
       {children}
-    </div>
+    </label>
   );
 }
 
-function Button({ className, children, onClick, disabled }: any) {
-  return (
-    <button
-      style={{ background: "var(--grad)" }}
-      className={`text-white px-8! py-2.5! mt-5! rounded-xl font-semibold shadow-[0_8px_24px_rgba(124,58,237,0.25)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 ${className || ""}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Field({ label, children }: any) {
-  return (
-    <div className="w-full">
-      <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function AvatarCard({ avatar, selected, onClick, previewUrl }: any) {
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all ${
-        selected
-          ? "border-[var(--violet)] bg-[var(--violet-050)] ring-1 ring-[var(--violet)]"
-          : "border-[var(--line)] bg-white hover:border-[var(--violet-100)] hover:bg-[var(--violet-050)]/40"
+      onClick={() => onChange(!on)}
+      className={`relative w-11! h-6! rounded-full transition-colors shrink-0 ${
+        on ? "bg-[var(--ink)]" : "bg-[var(--line)]"
       }`}
     >
-      {selected && (
-        <span
-          className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full grid place-items-center text-white"
-          style={{ background: "var(--grad)" }}
-        >
-          <Check size={11} strokeWidth={3} />
-        </span>
-      )}
-      <div className="rounded-full ring-1 ring-[var(--line)] bg-gray-100 overflow-hidden w-20 h-20">
-        <img
-          src={previewUrl || "https://ui-avatars.com/api/?name=A"}
-          alt={avatar.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <p
-        className={`text-sm font-medium ${selected ? "text-[var(--violet-700)]" : "text-[var(--ink)]"}`}
-      >
-        {avatar.name}
-      </p>
+      <span
+        className={`absolute top-0.5! left-0.5! w-5! h-5! rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-5" : ""
+        }`}
+      />
     </button>
+  );
+}
+
+function AvatarTab({ form, set }: any) {
+  const [filter, setFilter] = useState<"all" | "video" | "photo">("all");
+  const list = MUSETALK_AVATARS.filter(
+    (a) => filter === "all" || a.kind === filter,
+  );
+  return (
+    <div>
+      <SectionHead
+        title="Avatar"
+        desc="Pick the face your agent wears in the widget."
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4! mb-7!">
+        <div>
+          <Label>Agent name</Label>
+          <input
+            value={form.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="e.g. Support Desk"
+            className="fld px-3.5! py-2.5!"
+          />
+        </div>
+        <div>
+          <Label>Short description</Label>
+          <input
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="What does this agent do?"
+            className="fld px-3.5! py-2.5!"
+          />
+        </div>
+      </div>
+
+      <div className="inline-flex items-center gap-1! bg-[var(--sidebar)] border border-[var(--line)] rounded-xl p-1! mb-5!">
+        {(
+          [
+            { key: "all", label: "All" },
+            { key: "video", label: "Video Avatars" },
+            { key: "photo", label: "Photo Avatars" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setFilter(t.key)}
+            className={`px-3! py-1.5! rounded-lg text-[12.5px] font-semibold transition-colors ${
+              filter === t.key
+                ? "bg-[var(--ink)] text-white"
+                : "text-[var(--slate)] hover:bg-[var(--sidebar-hover)]"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {list.length === 0 ? (
+        <p className="text-[13px] text-[var(--muted)] py-8! text-center">
+          No {filter} avatars available.
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3!">
+          {list.map((a) => {
+            const selected = form.musetalk_avatar_id === a.id;
+            return (
+              <button
+                key={a.id}
+                onClick={() => set("musetalk_avatar_id", a.id)}
+                className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                  selected
+                    ? "border-[var(--violet)] ring-2 ring-[var(--violet-100)]"
+                    : "border-transparent hover:border-[var(--line)]"
+                }`}
+              >
+                <div className="aspect-[3/4] bg-[var(--line-soft)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={a.preview_url}
+                    alt={a.name}
+                    className="w-full! h-full! object-cover"
+                  />
+                </div>
+                {selected && (
+                  <span
+                    className="absolute top-1.5! right-1.5! w-5! h-5! rounded-full grid place-items-center text-white"
+                    style={{ background: "var(--grad)" }}
+                  >
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                )}
+                <span className="absolute bottom-1.5! left-1.5! text-[10px] font-semibold text-white bg-black/55 px-1.5! py-0.5! rounded">
+                  {a.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VoiceTab({ form, set, playing, togglePreview }: any) {
+  const selectedVoice = CARTESIA_VOICES.find((v) => v.id === form.voice_id);
+  return (
+    <div>
+      <SectionHead
+        title="Voice settings"
+        desc="Configure your agent's voice and language."
+      />
+      <div className="space-y-5!">
+        <div>
+          <Label>Language</Label>
+          <div className="relative">
+            <select
+              value={form.language}
+              onChange={(e) => set("language", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.flag} {l.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Voice</Label>
+          <div className="relative">
+            <select
+              value={form.voice_id}
+              onChange={(e) => set("voice_id", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              <option value="">Select a voice…</option>
+              {CARTESIA_VOICES.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} — {v.description}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+          {selectedVoice && (
+            <button
+              onClick={() => togglePreview(selectedVoice.id, selectedVoice.previewUrl)}
+              className="mt-3! inline-flex items-center gap-2! text-[13px] font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)] transition-colors"
+            >
+              {playing === selectedVoice.id ? (
+                <Pause size={14} fill="currentColor" />
+              ) : (
+                <Play size={14} fill="currentColor" />
+              )}
+              {playing === selectedVoice.id ? "Stop preview" : "Preview voice"}
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-4! bg-white border border-[var(--line)] rounded-xl px-4! py-3.5!">
+          <div>
+            <p className="text-[13.5px] font-semibold text-[var(--ink)]">
+              Pronunciation dictionary
+            </p>
+            <p className="text-[12px] text-[var(--muted)] mt-0.5!">
+              Define how specific words, names, or acronyms are pronounced.
+            </p>
+          </div>
+          <Toggle on={form.pronunciation} onChange={(v) => set("pronunciation", v)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BehaviorTab({ form, set }: any) {
+  const SYSTEM_TOOLS = [
+    { name: "skip_turn", note: "Provided by AVAT" },
+    { name: "end_call", note: "Provided by AVAT" },
+  ];
+  return (
+    <div>
+      <SectionHead
+        title="Set your agent behavior"
+        desc="Describe the desired tone, tool usage, and response style."
+      />
+      <div className="space-y-5!">
+        <div>
+          <Label>
+            Agent role{" "}
+            <span className="text-[var(--muted)] font-normal">(optional)</span>
+          </Label>
+          <input
+            value={form.agent_role}
+            onChange={(e) => set("agent_role", e.target.value)}
+            placeholder="e.g. Customer success manager"
+            className="fld px-3.5! py-2.5!"
+          />
+        </div>
+
+        <div>
+          <Label>Personality</Label>
+          <div className="relative">
+            <select
+              value={form.personality}
+              onChange={(e) => set("personality", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              {PERSONALITIES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Agent prompt</Label>
+          <textarea
+            value={form.system_prompt}
+            onChange={(e) => set("system_prompt", e.target.value)}
+            rows={7}
+            maxLength={20000}
+            placeholder="Tell the agent who it is, how to talk, and its boundaries…"
+            className="fld px-3.5! py-3! resize-y leading-relaxed"
+          />
+          <p className="text-right text-[11px] text-[var(--muted)] mt-1!">
+            {form.system_prompt.length}/20000
+          </p>
+        </div>
+
+        <div>
+          <p className="text-[13px] font-semibold text-[var(--ink)] mb-2!">
+            During conversation tools
+          </p>
+          <div className="space-y-2!">
+            {SYSTEM_TOOLS.map((t) => (
+              <div
+                key={t.name}
+                className="flex items-center justify-between bg-white border border-[var(--line)] rounded-xl px-4! py-3!"
+              >
+                <span className="flex items-center gap-2.5! text-[13.5px] font-medium text-[var(--ink)]">
+                  <span className="w-7! h-7! rounded-lg grid place-items-center bg-[var(--violet-050)] text-[var(--violet-700)] border border-[var(--violet-100)]">
+                    <Blocks size={14} />
+                  </span>
+                  {t.name}
+                </span>
+                <span className="text-[12px] text-[var(--muted)]">{t.note}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <Label>Model</Label>
+          <div className="relative">
+            <select
+              value={`${form.llm_provider}:${form.llm_model}`}
+              onChange={(e) => {
+                const [provider, ...rest] = e.target.value.split(":");
+                set("llm_provider", provider);
+                set("llm_model", rest.join(":"));
+              }}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              <option value="openai:gpt-4o">GPT-4o (recommended)</option>
+              <option value="openai:gpt-4o-mini">GPT-4o mini</option>
+              <option value="anthropic:claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+              <option value="anthropic:claude-3-5-haiku">Claude 3.5 Haiku</option>
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KnowledgeTab({
+  form,
+  set,
+  stagedFiles,
+  setStagedFiles,
+  stagedText,
+  setStagedText,
+  stagedUrl,
+  setStagedUrl,
+}: any) {
+  const [mode, setMode] = useState<"upload" | "text" | "url">("upload");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = (files: FileList | null) => {
+    if (!files) return;
+    const next: StagedFile[] = Array.from(files).map((file) => {
+      const okType = ALLOWED_EXT.some((ext) =>
+        file.name.toLowerCase().endsWith(ext),
+      );
+      if (!okType) return { file, error: `Allowed: ${ALLOWED_EXT_LABEL}` };
+      if (file.size > MAX_FILE_MB * 1024 * 1024)
+        return { file, error: `Over ${MAX_FILE_MB} MB` };
+      return { file };
+    });
+    setStagedFiles((prev: StagedFile[]) => [...prev, ...next]);
+  };
+
+  return (
+    <div>
+      <SectionHead
+        title="Knowledge settings"
+        desc="Choose whether the agent sticks to provided info or adds broader insight."
+      />
+      <div className="space-y-5!">
+        <div>
+          <Label>Answering mode</Label>
+          <div className="relative">
+            <select
+              value={form.knowledge_mode}
+              onChange={(e) => set("knowledge_mode", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              <option value="hybrid">
+                Hybrid — interpret facts conversationally
+              </option>
+              <option value="strict">Strict — answer only from knowledge</option>
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+        </div>
+
+        <div className="bg-white border border-[var(--line)] rounded-xl p-4!">
+          <div className="flex items-center gap-2! mb-3!">
+            <SlidersHorizontal size={15} className="text-[var(--violet-700)]" />
+            <span className="text-[13px] font-semibold text-[var(--ink)]">
+              Creativity level
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={form.creativity}
+            onChange={(e) => set("creativity", parseFloat(e.target.value))}
+            className="w-full! accent-[var(--violet)]"
+          />
+          <div className="flex justify-between text-[11px] text-[var(--muted)] mt-1!">
+            <span>More predictable</span>
+            <span>More diverse</span>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-[13px] font-semibold text-[var(--ink)] mb-2!">
+            Knowledge base
+          </p>
+          <div className="flex flex-wrap gap-2! mb-4!">
+            {(
+              [
+                { key: "upload", label: "Upload files", icon: <Upload size={14} /> },
+                { key: "text", label: "Paste text", icon: <Type size={14} /> },
+                { key: "url", label: "Crawl website", icon: <Globe size={14} /> },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMode(m.key)}
+                className={`flex items-center gap-2! px-3.5! py-2! rounded-lg text-[13px] font-semibold border transition-colors ${
+                  mode === m.key
+                    ? "bg-[var(--ink)] text-white border-[var(--ink)]"
+                    : "bg-white text-[var(--slate)] border-[var(--line)] hover:bg-[var(--sidebar-hover)]"
+                }`}
+              >
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+
+          {mode === "upload" && (
+            <div
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                addFiles(e.dataTransfer.files);
+              }}
+              className="border-2 border-dashed border-[var(--line)] rounded-2xl py-9! grid place-items-center text-center cursor-pointer hover:border-[var(--violet)] hover:bg-[var(--violet-050)] transition-all"
+            >
+              <Upload size={22} className="text-[var(--muted)] mb-2!" />
+              <p className="text-[13px] font-semibold text-[var(--ink)]">
+                Drag &amp; drop or click to browse
+              </p>
+              <p className="text-[11.5px] text-[var(--muted)] mt-0.5!">
+                {ALLOWED_EXT_LABEL} · max {MAX_FILE_MB} MB
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                hidden
+                accept=".pdf,.txt,.md,.docx"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+            </div>
+          )}
+
+          {mode === "text" && (
+            <textarea
+              value={stagedText}
+              onChange={(e) => setStagedText(e.target.value)}
+              rows={7}
+              placeholder="Paste key facts, FAQs, or guidelines your agent should know…"
+              className="fld px-3.5! py-3! resize-y"
+            />
+          )}
+
+          {mode === "url" && (
+            <div className="relative">
+              <Link2
+                size={15}
+                className="absolute left-3.5! top-1/2 -translate-y-1/2 text-[var(--muted)]"
+              />
+              <input
+                value={stagedUrl}
+                onChange={(e) => setStagedUrl(e.target.value)}
+                placeholder="https://yourcompany.com"
+                type="url"
+                className="fld pl-10! pr-3.5! py-2.5!"
+              />
+              <p className="text-[11.5px] text-[var(--muted)] mt-2!">
+                We read the sitemap, then follow same-site links (up to 60 pages).
+                Crawling starts when you create the agent.
+              </p>
+            </div>
+          )}
+
+          {/* Staged files */}
+          {stagedFiles.length > 0 && (
+            <div className="space-y-2! mt-4!">
+              {stagedFiles.map((sf: StagedFile, i: number) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3! px-3.5! py-2.5! rounded-xl border ${
+                    sf.error
+                      ? "bg-red-50 border-red-200"
+                      : "bg-white border-[var(--line)]"
+                  }`}
+                >
+                  <FileText size={15} className="text-[var(--muted)] shrink-0" />
+                  <span className="flex-1 min-w-0 text-[13px] text-[var(--ink)] truncate">
+                    {sf.file.name}
+                  </span>
+                  {sf.error ? (
+                    <span className="text-[11.5px] text-red-600">{sf.error}</span>
+                  ) : (
+                    <span className="text-[11px] text-[var(--muted)]">
+                      {(sf.file.size / 1024).toFixed(0)} KB
+                    </span>
+                  )}
+                  <button
+                    onClick={() =>
+                      setStagedFiles((prev: StagedFile[]) =>
+                        prev.filter((_, idx) => idx !== i),
+                      )
+                    }
+                    className="w-6! h-6! grid place-items-center rounded-md text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="flex items-center gap-1.5! text-[12px] text-[var(--muted)] mt-4!">
+            <Info size={12} /> Knowledge is optional and indexed after the agent
+            is created. You can add more later.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConversationTab({ form, set }: any) {
+  const [topicDraft, setTopicDraft] = useState("");
+  const addTopic = () => {
+    const t = topicDraft.trim();
+    if (t && !form.topics.includes(t)) set("topics", [...form.topics, t]);
+    setTopicDraft("");
+  };
+  return (
+    <div>
+      <SectionHead
+        title="Conversation"
+        desc="Fine-tune how the conversation runs."
+      />
+      <div className="space-y-5!">
+        <Row
+          title="Enable camera"
+          desc="Enhance the interaction with live video input."
+        >
+          <Toggle on={form.enable_camera} onChange={(v) => set("enable_camera", v)} />
+        </Row>
+
+        <div>
+          <Label>
+            Topics to avoid{" "}
+            <span className="text-[var(--muted)] font-normal">(optional)</span>
+          </Label>
+          <input
+            value={topicDraft}
+            onChange={(e) => setTopicDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addTopic();
+              }
+            }}
+            placeholder="Type a topic and press Enter…"
+            className="fld px-3.5! py-2.5!"
+          />
+          {form.topics.length > 0 && (
+            <div className="flex flex-wrap gap-2! mt-2.5!">
+              {form.topics.map((t: string) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5! text-[12px] font-medium text-[var(--slate)] bg-[var(--sidebar)] border border-[var(--line)] px-2.5! py-1! rounded-full"
+                >
+                  {t}
+                  <button
+                    onClick={() =>
+                      set(
+                        "topics",
+                        form.topics.filter((x: string) => x !== t),
+                      )
+                    }
+                    className="text-[var(--muted)] hover:text-red-600"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Row
+          title="Limit response length"
+          desc="Cap the maximum number of words per reply."
+        >
+          <Toggle
+            on={form.max_words !== null}
+            onChange={(v) => set("max_words", v ? 80 : null)}
+          />
+        </Row>
+        {form.max_words !== null && (
+          <div className="pl-1!">
+            <input
+              type="number"
+              min={10}
+              max={500}
+              value={form.max_words}
+              onChange={(e) => set("max_words", parseInt(e.target.value) || 0)}
+              className="fld px-3.5! py-2! w-32!"
+            />
+            <span className="text-[12px] text-[var(--muted)] ml-2!">words</span>
+          </div>
+        )}
+
+        <Row
+          title="End-of-call feedback"
+          desc="Show a rating screen to the user when the call ends."
+        >
+          <Toggle
+            on={form.feedback_screen}
+            onChange={(v) => set("feedback_screen", v)}
+          />
+        </Row>
+
+        <div className="pt-2!">
+          <p className="text-[13px] font-semibold text-[var(--ink)] mb-3!">
+            Advanced
+          </p>
+          <div className="space-y-3!">
+            <Row
+              title="Agent memory"
+              desc="Let this agent carry context across conversations."
+            >
+              <Toggle on={form.agent_memory} onChange={(v) => set("agent_memory", v)} />
+            </Row>
+            <Row
+              title="Share memory across agents"
+              desc="Make shared memory available to all agents when memory is on."
+            >
+              <Toggle on={form.share_memory} onChange={(v) => set("share_memory", v)} />
+            </Row>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4! bg-white border border-[var(--line)] rounded-xl px-4! py-3.5!">
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-semibold text-[var(--ink)]">{title}</p>
+        <p className="text-[12px] text-[var(--muted)] mt-0.5!">{desc}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ── Live preview panel ───────────────────────────────────────────────────────
+interface PMsg {
+  id: string;
+  from: "user" | "agent";
+  text: string;
+}
+function AgentPreview({ name, avatarUrl }: { name: string; avatarUrl: string }) {
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [draft, setDraft] = useState("");
+  const greeting = `Hi! I'm ${name}. How can I help you?`;
+  const [msgs, setMsgs] = useState<PMsg[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 9e9, behavior: "smooth" });
+  }, [msgs]);
+
+  const send = () => {
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    setMsgs((m) => [
+      ...m,
+      { id: crypto.randomUUID(), from: "user", text },
+      {
+        id: crypto.randomUUID(),
+        from: "agent",
+        text: "Thanks! This is a preview — once you create me, I'll answer using my instructions and knowledge.",
+      },
+    ]);
+  };
+
+  return (
+    <div className="hidden md:flex w-[420px]! xl:w-[460px]! shrink-0 border-l border-[var(--line)] bg-[var(--sidebar)] flex-col items-center justify-center px-6! py-8!">
+      {/* device toggle */}
+      <div className="inline-flex items-center gap-1! bg-white border border-[var(--line)] rounded-lg p-1! mb-4! shadow-[var(--shadow-sm)]">
+        {(
+          [
+            { key: "desktop", icon: <Monitor size={15} /> },
+            { key: "mobile", icon: <Smartphone size={15} /> },
+          ] as const
+        ).map((d) => (
+          <button
+            key={d.key}
+            onClick={() => setDevice(d.key)}
+            className={`w-9! h-8! grid place-items-center rounded-md transition-colors ${
+              device === d.key
+                ? "bg-[var(--ink)] text-white"
+                : "text-[var(--muted)] hover:bg-[var(--sidebar-hover)]"
+            }`}
+          >
+            {d.icon}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-[#141026] text-white text-[11.5px] font-medium px-3.5! py-2! rounded-lg mb-3! text-center max-w-[320px]!">
+        You&apos;re in preview mode — sound and face animations won&apos;t show.
+      </div>
+
+      <div
+        className={`w-full! bg-white rounded-2xl border border-[var(--line)] shadow-[var(--shadow-md)] overflow-hidden flex flex-col transition-all ${
+          device === "mobile" ? "max-w-[300px]!" : "max-w-[380px]!"
+        }`}
+      >
+        {/* avatar still */}
+        <div className="relative aspect-[4/3] bg-[var(--line-soft)] overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={avatarUrl} alt={name} className="w-full! h-full! object-cover" />
+          <div className="absolute bottom-2! left-2! flex items-center gap-1.5! text-[11px] font-semibold text-white bg-black/45 backdrop-blur px-2! py-1! rounded-lg">
+            <Video size={12} /> AI
+          </div>
+        </div>
+        {/* chat */}
+        <div className="flex items-center justify-center px-4! py-2.5! border-y border-[var(--line)] text-[13px] font-semibold text-[var(--ink)]">
+          Chat
+        </div>
+        <div ref={scrollRef} className="h-[180px]! overflow-y-auto px-4! py-3! space-y-2.5!">
+          <div className="flex justify-start">
+            <div className="max-w-[85%]! bg-[var(--sidebar)] text-[var(--ink)] text-[12.5px] leading-snug px-3! py-2! rounded-2xl rounded-bl-md">
+              {greeting}
+            </div>
+          </div>
+          {msgs.map((m) => (
+            <div
+              key={m.id}
+              className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[85%]! text-[12.5px] leading-snug px-3! py-2! rounded-2xl ${
+                  m.from === "user"
+                    ? "text-white rounded-br-md"
+                    : "bg-[var(--sidebar)] text-[var(--ink)] rounded-bl-md"
+                }`}
+                style={m.from === "user" ? { background: "var(--grad)" } : undefined}
+              >
+                {m.text}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="p-3! border-t border-[var(--line)]">
+          <div className="flex items-center gap-2! bg-[var(--sidebar)] border border-[var(--line)] rounded-xl px-3! py-2! focus-within:border-[var(--violet)]">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Type your message here…"
+              className="flex-1 bg-transparent text-[12.5px] text-[var(--ink)] placeholder-[var(--muted)] outline-none"
+            />
+            <button
+              onClick={send}
+              disabled={!draft.trim()}
+              className="w-7! h-7! grid place-items-center rounded-full text-white disabled:opacity-40 transition-opacity"
+              style={{ background: "var(--grad)" }}
+            >
+              <Send size={13} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Embed screen ─────────────────────────────────────────────────────────────
+function EmbedScreen({
+  code,
+  copied,
+  onCopy,
+  onDone,
+}: {
+  code: string;
+  copied: boolean;
+  onCopy: () => void;
+  onDone: () => void;
+}) {
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto px-6! py-10!">
+      <div className="max-w-[720px]! mx-auto!">
+        <div className="text-center mb-8!">
+          <span
+            className="w-14! h-14! rounded-2xl grid place-items-center text-white mx-auto! mb-4!"
+            style={{ background: "var(--grad)" }}
+          >
+            <CheckCircle2 size={26} />
+          </span>
+          <h2 className="text-[22px] font-semibold text-[var(--ink)] tracking-tight">
+            Your agent is live
+          </h2>
+          <p className="text-[13.5px] text-[var(--slate)] mt-1.5!">
+            Drop this snippet into any site to embed the widget.
+          </p>
+        </div>
+
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-6! shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2! mb-4! text-[var(--violet-700)]">
+            <Code2 size={16} />
+            <span className="text-[14px] font-semibold text-[var(--ink)]">
+              Embed code
+            </span>
+          </div>
+          <pre className="bg-[#141026] text-emerald-300 text-[12.5px] leading-relaxed rounded-xl p-4! overflow-x-auto whitespace-pre-wrap break-all mb-4!">
+            {code}
+          </pre>
+          <button onClick={onCopy} className="btn-dark px-5! py-2.5! text-[13.5px]">
+            <Copy size={15} /> {copied ? "Copied!" : "Copy embed code"}
+          </button>
+        </div>
+
+        <div className="flex justify-end mt-6!">
+          <button
+            onClick={onDone}
+            className="inline-flex items-center gap-2! bg-emerald-600 hover:bg-emerald-700 text-white px-6! py-2.5! rounded-xl text-[13.5px] font-semibold transition-colors"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -67,7 +67,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setStatus("authenticated");
       })
       .catch(() => {
-        if (!cancelled) setStatus("unauthenticated");
+        if (cancelled) return;
+        // The persisted session is stale/invalid — drop it so we don't keep
+        // replaying a dead token on every reload.
+        apiClient.setAccessToken(null);
+        setStatus("unauthenticated");
       });
 
     return () => {
