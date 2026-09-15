@@ -3,6 +3,7 @@
 // import { useEffect, useRef, useState, useCallback } from "react";
 // import { motion, AnimatePresence } from "framer-motion";
 // import { Mic, MicOff, PhoneOff, RefreshCw } from "lucide-react";
+// import { apiClient } from "@/lib/api/client";
 // import { LiveAvatarRoom } from "@/components/avatar/Liveavatarroom";
 // import { useLiveKitRoom } from "@/hooks/Uselivekitroom";
 // import { DEFAULT_AVATAR, AVATAR_OPTIONS } from "@/components/avatar/Avatars";
@@ -1271,13 +1272,23 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw } from "lucide-react";
+import { apiClient } from "@/lib/api/client";
 import { LiveAvatarRoom } from "@/components/avatar/Liveavatarroom";
 import { useLiveKitRoom } from "@/hooks/Uselivekitroom";
 import { DEFAULT_AVATAR, AVATAR_OPTIONS } from "@/components/avatar/Avatars";
 import type { Agent } from "@/types";
 
 interface ConversationViewProps {
-  agent: Agent & { avatar_id?: string };
+  /**
+   * Only the id, name and avatar are read here, so the embedded widget can
+   * pass the PUBLIC config (GET /api/widget/{id}/config) straight through
+   * without inventing the owner-only fields of a full Agent.
+   */
+  agent: Pick<Agent, "id" | "name"> & {
+    avatar_id?: string;
+    musetalk_avatar_id?: string;
+    language?: string;
+  };
   roomName?: string;
   userIdentity?: string;
 }
@@ -1362,6 +1373,52 @@ export function ConversationView({
       disconnect();
     };
   }, [agent.id, roomName, userIdentity, connect, disconnect]);
+
+  // ── Media listener: the agent's show_media tool → chat card ────────
+  // The worker publishes the chosen item on the "media" data topic when it
+  // decides to put a flyer / card / price list on screen. The chat panel lives
+  // in the PARENT widget, so relay it up rather than rendering it here.
+  useEffect(() => {
+    const lkRoom = getRoom();
+    if (!lkRoom?.on) return;
+
+    const onData = (
+      payload: Uint8Array,
+      _participant?: unknown,
+      _kind?: unknown,
+      topic?: string,
+    ) => {
+      if (topic && topic !== "media") return;
+      let parsed: { type?: string; media?: Record<string, unknown> } | null = null;
+      try {
+        parsed = JSON.parse(new TextDecoder().decode(payload));
+      } catch {
+        return; // not ours — another feature's data message
+      }
+      if (!parsed || parsed.type !== "media" || !parsed.media) return;
+      // Uploaded media come through as "/api/media/<id>/file", which is
+      // relative to the API origin — not to the site hosting the widget. The
+      // parent would resolve it against its own domain and show a broken tile.
+      const media = {
+        ...parsed.media,
+        url: apiClient.absoluteUrl(String(parsed.media.url || "")),
+      };
+      try {
+        window.parent.postMessage({ type: "VOICE_AGENT_MEDIA", media }, "*");
+      } catch {}
+    };
+
+    try {
+      lkRoom.on("dataReceived", onData);
+    } catch (e) {
+      console.warn("[media] data channel unavailable:", e);
+    }
+    return () => {
+      try {
+        lkRoom.off?.("dataReceived", onData);
+      } catch {}
+    };
+  }, [getRoom, state]);
 
   // ── Transcription listener: agent + user speech → chat messages ────
   // Transcripts arrive via ONE of two paths depending on livekit versions:

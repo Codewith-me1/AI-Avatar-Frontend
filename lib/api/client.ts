@@ -188,6 +188,30 @@ class ApiClient {
   put<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
   }
+  /**
+   * Absolute URL for a server-relative path the API handed us (media files,
+   * avatar previews). The API lives on its own origin, so `/api/media/…/file`
+   * must be resolved against the API base before it can go in an `src`.
+   */
+  absoluteUrl(path: string | null | undefined): string {
+    if (!path) return "";
+    if (/^(https?:|data:|blob:)/i.test(path)) return path;
+    return `${this.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  /**
+   * Object URL for an endpoint that requires authentication.
+   *
+   * An `<img src>` cannot carry the Bearer header, and the session cookie is
+   * third-party from this origin, so owner-only assets (custom avatar
+   * previews) have to be fetched here and handed to the DOM as a blob.
+   * Callers own the result — revoke it when the element unmounts.
+   */
+  async objectUrl(path: string): Promise<string> {
+    const blob = await this.getBlob(path);
+    return URL.createObjectURL(blob);
+  }
+
   /** Authenticated binary GET (e.g. CSV export) → Blob. */
   async getBlob(path: string): Promise<Blob> {
     const res = await fetch(`${this.baseUrl}${path}`, {

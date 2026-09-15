@@ -2810,6 +2810,30 @@
     .va-msg.user  .va-msg-bubble { background: #4f46e5; border-bottom-right-radius: 5px; }
     .va-msg.agent .va-msg-bubble { background: #2a3350; border-bottom-left-radius: 5px; }
     .va-msg.interim .va-msg-bubble { opacity: 0.65; }
+    /* Media the agent shows mid-conversation (flyer, business card, price list) */
+    .va-media-card {
+      max-width: 85%; background: #2a3350; border-radius: 14px;
+      border-bottom-left-radius: 5px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .va-media-card img {
+      display: block; width: 100%; max-height: 190px; object-fit: cover; background: #1b2136;
+    }
+    .va-media-meta { padding: 8px 12px; }
+    .va-media-title { color: #fff; font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+    .va-media-link {
+      display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 600;
+      color: #a5b4fc; text-decoration: none;
+    }
+    .va-media-link:hover { text-decoration: underline; }
+    /* Suggested openers from the agent's settings */
+    .va-starters { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 4px; }
+    .va-starter {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.85); font-size: 11.5px; font-family: inherit;
+      padding: 5px 10px; border-radius: 999px; cursor: pointer; line-height: 1.2;
+    }
+    .va-starter:hover { background: rgba(129,140,248,0.22); border-color: rgba(129,140,248,0.6); color: #fff; }
     .va-chat-inputrow {
       flex-shrink: 0; padding: 10px;
       border-top: 1px solid rgba(255,255,255,0.10);
@@ -3019,6 +3043,81 @@
     chatEmpty.style.display = "";
   }
 
+  // ── Media cards ────────────────────────────────────────────────────────────
+  // The agent's show_media tool publishes the chosen item on the room's "media"
+  // data topic; the iframe relays it here as VOICE_AGENT_MEDIA. Rendered as its
+  // own bubble so it reads as part of the conversation.
+  const shownMedia = new Set();
+
+  function appendMediaCard(media) {
+    if (!media || !media.url) return;
+    // The same item can be pushed again later in a long call; show it once.
+    if (media.id && shownMedia.has(media.id)) return;
+    if (media.id) shownMedia.add(media.id);
+
+    chatEmpty.style.display = "none";
+    const wrap = document.createElement("div");
+    wrap.className = "va-msg agent";
+
+    const card = document.createElement("div");
+    card.className = "va-media-card";
+
+    const isImage = (media.kind || "image") === "image";
+    if (isImage) {
+      const img = document.createElement("img");
+      img.src = media.url;
+      img.alt = media.title || "Shared media";
+      img.loading = "lazy";
+      // A broken asset must not leave an empty grey slab in the transcript.
+      img.addEventListener("error", () => img.remove());
+      card.appendChild(img);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "va-media-meta";
+    const title = document.createElement("div");
+    title.className = "va-media-title";
+    title.textContent = media.title || "Shared media";
+    meta.appendChild(title);
+
+    const link = document.createElement("a");
+    link.className = "va-media-link";
+    link.href = media.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = isImage ? "Open full size" : "Open";
+    meta.appendChild(link);
+
+    card.appendChild(meta);
+    wrap.appendChild(card);
+    chatMessages.appendChild(wrap);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  // ── Conversation starters ──────────────────────────────────────────────────
+  function renderStarters(list) {
+    chatMessages.querySelectorAll(".va-starters").forEach((el) => el.remove());
+    if (!Array.isArray(list) || !list.length) return;
+
+    const row = document.createElement("div");
+    row.className = "va-starters";
+    list.slice(0, 4).forEach((text) => {
+      if (!text) return;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "va-starter";
+      chip.textContent = text;
+      chip.addEventListener("click", () => {
+        chatInput.value = text;
+        sendChatMessage();
+        // Once the visitor has picked one, the suggestions are noise.
+        row.remove();
+      });
+      row.appendChild(chip);
+    });
+    chatMessages.appendChild(row);
+  }
+
   function setChatOpen(open) {
     chatOpen = open;
     expandedCard.classList.toggle("chat-open", open);
@@ -3185,6 +3284,32 @@
           text,
           final !== false,
         );
+        break;
+      }
+
+      // The agent's public config, relayed by the iframe once it loads: the
+      // owner's greeting, conversation starters and any media set to show from
+      // the start. Keeps the embed in step with the dashboard without a redeploy.
+      case "VOICE_AGENT_CONFIG": {
+        const { name, greeting, starters, media } = event.data;
+        if (name) {
+          document.querySelectorAll("[data-va-agent-name]").forEach((el) => {
+            el.textContent = name;
+          });
+        }
+        if (greeting) {
+          chatEmpty.textContent = greeting;
+        }
+        renderStarters(starters);
+        (Array.isArray(media) ? media : [])
+          .filter((m) => m && m.show_by_default)
+          .forEach(appendMediaCard);
+        break;
+      }
+
+      // shape: { type, media: { id, kind, title, url } }
+      case "VOICE_AGENT_MEDIA": {
+        appendMediaCard(event.data.media);
         break;
       }
     }

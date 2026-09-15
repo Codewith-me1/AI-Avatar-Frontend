@@ -1,4 +1,9 @@
-// Shared catalog data used by the agent-creation wizard and the Avatars page.
+// Shared catalog data for the agent wizard and the Avatars page.
+//
+// Avatars now come from GET /api/avatars/catalogue (MuseTalk + LiveAvatar +
+// the owner's own uploads). MUSETALK_AVATARS below is the offline fallback
+// `lib/api/avatars.ts` falls back to when that call fails — keep the ids in
+// sync with the backend's _MUSETALK_AVATARS list.
 
 export interface AvatarItem {
   id: string;

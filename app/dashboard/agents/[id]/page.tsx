@@ -1,1101 +1,705 @@
-// "use client";
-
-// import React, { useEffect, useState, use } from "react";
-// import { useRouter } from "next/navigation";
-// import Link from "next/link";
-// import {
-//   ArrowLeft,
-//   Cpu,
-//   Radio,
-//   AlignLeft,
-//   Info,
-//   HelpCircle,
-//   Code,
-//   Copy,
-//   Check,
-// } from "lucide-react";
-// import { motion, AnimatePresence } from "framer-motion";
-// import { apiClient } from "@/lib/api/client";
-// import { useAgentStore } from "@/store";
-// import type { Agent } from "@/types";
-
-// export default function EditAgentPage({
-//   params,
-// }: {
-//   params: Promise<{ id: string }>;
-// }) {
-//   const { id } = use(params);
-//   const router = useRouter();
-//   const { updateAgent, agents } = useAgentStore();
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [isSaving, setIsSaving] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [success, setSuccess] = useState(false);
-//   const [copied, setCopied] = useState(false);
-
-//   // Form State
-//   const [formData, setFormData] = useState<Omit<Agent, "id" | "slug">>({
-//     name: "",
-//     description: "",
-//     system_prompt: "",
-//     language: "en-US",
-//     avatar_type: "waveform",
-//     avatar_url: "",
-//     avatar_id: "",
-//     musetalk_avatar_id: "",
-
-//     llm_provider: "openai",
-//     llm_model: "gpt-4o",
-//     is_public: true,
-//     is_active: true,
-//   });
-
-//   useEffect(() => {
-//     loadAgent();
-//   }, [id]);
-
-//   const loadAgent = async () => {
-//     setIsLoading(true);
-//     setError(null);
-//     try {
-//       // 1. Try fetching from backend API
-//       const data = await apiClient.get<Agent>(`/api/agents/${id}`);
-//       setFormData({
-//         name: data.name,
-//         description: data.description || "",
-//         system_prompt: data.system_prompt,
-//         language: data.language,
-//         avatar_type: data.avatar_type,
-//         avatar_url: data.avatar_url || "",
-//         avatar_id: data.avatar_id || "",
-//         musetalk_avatar_id: data.musetalk_avatar_id || "",
-//         llm_provider: data.llm_provider,
-//         llm_model: data.llm_model,
-//         is_public: data.is_public,
-//         is_active: data.is_active,
-//       });
-//     } catch (err) {
-//       console.warn("Failed to load agent from API, searching local store", err);
-//       // 2. Fall back to local store (for demo mode / offline support)
-//       const localAgent = agents.find((a) => a.id === id);
-//       if (localAgent) {
-//         setFormData({
-//           name: localAgent.name,
-//           description: localAgent.description || "",
-//           system_prompt: localAgent.system_prompt,
-//           language: localAgent.language,
-//           avatar_type: localAgent.avatar_type,
-//           avatar_url: localAgent.avatar_url || "",
-//           avatar_id: localAgent.avatar_id || "",
-//           musetalk_avatar_id: localAgent.musetalk_avatar_id || "",
-//           llm_provider: localAgent.llm_provider,
-//           llm_model: localAgent.llm_model,
-//           is_public: localAgent.is_public,
-//           is_active: localAgent.is_active,
-//         });
-//       } else {
-//         setError("Agent not found in registry.");
-//       }
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const handleInputChange = (
-//     e: React.ChangeEvent<
-//       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-//     >,
-//   ) => {
-//     const { name, value, type } = e.target;
-//     if (type === "checkbox") {
-//       const checked = (e.target as HTMLInputElement).checked;
-//       setFormData((prev) => ({ ...prev, [name]: checked }));
-//     } else {
-//       setFormData((prev) => ({ ...prev, [name]: value }));
-//     }
-//   };
-
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     if (!formData.name) {
-//       setError("Agent name is required");
-//       return;
-//     }
-
-//     setIsSaving(true);
-//     setError(null);
-//     setSuccess(false);
-
-//     const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-//     const payload = {
-//       ...formData,
-//       slug,
-//     };
-
-//     try {
-//       // Try sending update to API
-//       const response = await apiClient.patch<Agent>(
-//         `/api/agents/${id}`,
-//         payload,
-//       );
-//       updateAgent(id, response);
-//       setSuccess(true);
-//       setTimeout(() => setSuccess(false), 3000);
-//     } catch (err) {
-//       console.warn(
-//         "API patch failed, editing client-side mock agent instead",
-//         err,
-//       );
-//       // Update in Zustand store locally
-//       updateAgent(id, payload);
-//       setSuccess(true);
-//       setTimeout(() => setSuccess(false), 3000);
-//     } finally {
-//       setIsSaving(false);
-//     }
-//   };
-
-//   // Embed script generator snippet
-//   const embedCode = `<!-- VoiceAgent Embeddable Assistant Widget -->
-// <script>
-//   window.VoiceAgentConfig = {
-//     agentId: "${id}",
-//     apiUrl: "${typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}"
-//   };
-// </script>
-// <script src="${typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}/components/widget/widget.js" async></script>`;
-
-//   const handleCopy = () => {
-//     navigator.clipboard.writeText(embedCode);
-//     setCopied(true);
-//     setTimeout(() => setCopied(false), 2000);
-//   };
-
-//   if (isLoading) {
-//     return (
-//       <div className="flex flex-col items-center justify-center h-96 gap-3 text-slate-400">
-//         <div className="w-10 h-10 border-4 border-[#6d28d9] border-t-transparent rounded-full animate-spin" />
-//         <span className="text-sm font-semibold">Loading agent settings...</span>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="p-8 max-w-4xl mx-auto space-y-8">
-//       {/* Top Breadcrumb */}
-//       <div className="flex items-center justify-between">
-//         <Link
-//           href="/dashboard/agents"
-//           className="inline-flex items-center gap-2 text-slate-500 hover:text-[#6d28d9] text-sm font-medium transition-colors group"
-//         >
-//           <ArrowLeft
-//             size={16}
-//             className="transition-transform group-hover:-translate-x-1"
-//           />
-//           Back to dashboard
-//         </Link>
-
-//         <Link href={`/dashboard/agents/${id}/test`}>
-//           <button className="px-4 py-2 bg-[#ede9fe] hover:bg-[#a78bfa] text-[#6d28d9] border border-[#a78bfa]/40 text-xs font-bold rounded-xl transition-all cursor-pointer">
-//             Test Speech Mode
-//           </button>
-//         </Link>
-//       </div>
-
-//       {/* Header */}
-//       <div className="flex items-center gap-3">
-//         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#a78bfa] to-[#6d28d9] flex items-center justify-center text-white font-black text-xl shadow-md border border-white/80">
-//           {formData.name.slice(0, 2).toUpperCase()}
-//         </div>
-//         <div>
-//           <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#6d28d9] to-slate-800">
-//             Configure Agent: {formData.name}
-//           </h1>
-//           <p className="text-slate-500 text-sm">
-//             Update model, voice characteristics, and system guidelines
-//           </p>
-//         </div>
-//       </div>
-
-//       {error && (
-//         <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-sm shadow-sm">
-//           {error}
-//         </div>
-//       )}
-
-//       {success && (
-//         <motion.div
-//           initial={{ opacity: 0, y: -5 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-sm font-medium shadow-sm"
-//         >
-//           Agent settings updated successfully!
-//         </motion.div>
-//       )}
-
-//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-//         {/* Left 2 columns - Settings Form */}
-//         <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
-//           {/* Profile Section */}
-//           <FormSection title="Agent Info" icon={<AlignLeft size={16} />}>
-//             <div className="space-y-4">
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   Agent Name
-//                 </label>
-//                 <input
-//                   type="text"
-//                   name="name"
-//                   value={formData.name}
-//                   onChange={handleInputChange}
-//                   placeholder="Agent Name"
-//                   className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                   required
-//                 />
-//               </div>
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   Description
-//                 </label>
-//                 <input
-//                   type="text"
-//                   name="description"
-//                   value={formData.description}
-//                   onChange={handleInputChange}
-//                   placeholder="Short description"
-//                   className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 />
-//               </div>
-//             </div>
-//           </FormSection>
-
-//           {/* AI LLM Section */}
-//           <FormSection title="LLM Configuration" icon={<Cpu size={16} />}>
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   LLM Provider
-//                 </label>
-//                 <select
-//                   name="llm_provider"
-//                   value={formData.llm_provider}
-//                   onChange={handleInputChange}
-//                   className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 >
-//                   <option value="openai">OpenAI</option>
-//                   <option value="anthropic">Anthropic</option>
-//                 </select>
-//               </div>
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   LLM Model
-//                 </label>
-//                 <select
-//                   name="llm_model"
-//                   value={formData.llm_model}
-//                   onChange={handleInputChange}
-//                   className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 >
-//                   {formData.llm_provider === "openai" ? (
-//                     <>
-//                       <option value="gpt-4o">gpt-4o</option>
-//                       <option value="gpt-4o-mini">gpt-4o-mini</option>
-//                       <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-//                     </>
-//                   ) : (
-//                     <>
-//                       <option value="claude-3-5-sonnet">
-//                         claude-3-5-sonnet
-//                       </option>
-//                       <option value="claude-3-haiku">claude-3-haiku</option>
-//                     </>
-//                   )}
-//                 </select>
-//               </div>
-//             </div>
-//           </FormSection>
-
-//           {/* UI Representation */}
-//           <FormSection
-//             title="Voice & Visual Interface"
-//             icon={<Radio size={16} />}
-//           >
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   Avatar Type
-//                 </label>
-//                 <select
-//                   name="avatar_type"
-//                   value={formData.avatar_type}
-//                   onChange={handleInputChange}
-//                   className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 >
-//                   <option value="waveform">Waveform (Default)</option>
-//                   <option value="readyplayerme">
-//                     Ready Player Me (3D GLB)
-//                   </option>
-//                 </select>
-//               </div>
-//               <div className="space-y-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   Language
-//                 </label>
-//                 <select
-//                   name="language"
-//                   value={formData.language}
-//                   onChange={handleInputChange}
-//                   className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 >
-//                   <option value="en-US">English (US)</option>
-//                   <option value="es-ES">Spanish (Spain)</option>
-//                   <option value="fr-FR">French (France)</option>
-//                   <option value="de-DE">German (Germany)</option>
-//                 </select>
-//               </div>
-//             </div>
-//             {formData.avatar_type === "readyplayerme" && (
-//               <div className="space-y-2 pt-2">
-//                 <label className="text-xs font-bold text-[#6d28d9] uppercase tracking-wider block">
-//                   Avatar GLB URL
-//                 </label>
-//                 <input
-//                   type="text"
-//                   name="avatar_url"
-//                   value={formData.avatar_url}
-//                   onChange={handleInputChange}
-//                   placeholder="https://models.readyplayer.me/your-avatar.glb"
-//                   className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all"
-//                 />
-//               </div>
-//             )}
-//           </FormSection>
-
-//           {/* System Instructions */}
-//           <div className="glass-panel rounded-2xl p-6 space-y-4 shadow-sm border border-white/60">
-//             <h3 className="text-sm font-bold text-[#6d28d9] uppercase tracking-wider">
-//               System Instructions
-//             </h3>
-//             <div className="space-y-2">
-//               <textarea
-//                 name="system_prompt"
-//                 value={formData.system_prompt}
-//                 onChange={handleInputChange}
-//                 rows={6}
-//                 placeholder="Write system instructions..."
-//                 className="w-full px-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 text-sm outline-none focus:border-[#a78bfa] focus:ring-2 focus:ring-[#ede9fe] transition-all resize-none leading-relaxed"
-//                 required
-//               />
-//             </div>
-//           </div>
-
-//           <div className="flex items-center gap-4 bg-white/60 border border-slate-200/60 p-4 rounded-xl shadow-sm">
-//             <label className="flex items-center gap-3 cursor-pointer select-none">
-//               <input
-//                 type="checkbox"
-//                 name="is_active"
-//                 checked={formData.is_active}
-//                 onChange={(e) =>
-//                   setFormData((prev) => ({
-//                     ...prev,
-//                     is_active: e.target.checked,
-//                   }))
-//                 }
-//                 className="w-4 h-4 rounded text-[#6d28d9] bg-white border-slate-300 focus:ring-[#a78bfa] focus:ring-offset-2"
-//               />
-//               <div>
-//                 <p className="text-sm font-bold text-slate-800">
-//                   Active Status
-//                 </p>
-//                 <p className="text-[11px] text-slate-500">
-//                   Toggle whether this voice agent is available for user calls.
-//                 </p>
-//               </div>
-//             </label>
-//           </div>
-
-//           <div className="flex items-center justify-end gap-3 pt-2">
-//             <Link href="/dashboard/agents">
-//               <button
-//                 type="button"
-//                 className="px-6 py-3 bg-white/60 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-800 rounded-xl text-sm font-semibold transition-all cursor-pointer"
-//               >
-//                 Cancel
-//               </button>
-//             </Link>
-//             <motion.button
-//               whileHover={{ scale: 1.02 }}
-//               whileTap={{ scale: 0.98 }}
-//               type="submit"
-//               disabled={isSaving}
-//               className="px-8 py-3 bg-[#6d28d9] hover:bg-[#5b21b6] text-white rounded-xl text-sm font-bold shadow-md shadow-[#6d28d9]/10 transition-all disabled:opacity-50 cursor-pointer"
-//             >
-//               {isSaving ? "Saving..." : "Save Changes"}
-//             </motion.button>
-//           </div>
-//         </form>
-
-//         {/* Right 1 column - Integration Widget Embed */}
-//         <div className="space-y-6">
-//           <div className="glass-panel rounded-2xl p-6 space-y-4 shadow-sm border border-white/60">
-//             <div className="flex items-center gap-2 text-[#6d28d9]">
-//               <Code size={16} className="text-[#a78bfa]" />
-//               <h3 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">
-//                 Embed Script
-//               </h3>
-//             </div>
-
-//             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-//               Copy and paste this script snippet before the closing{" "}
-//               <code className="text-[#6d28d9] font-semibold">
-//                 &lt;/body&gt;
-//               </code>{" "}
-//               tag on any website to embed the floatable voice assistant button.
-//             </p>
-
-//             <div className="relative bg-[#6d28d9]/5 border border-slate-200/60 rounded-xl p-3.5 overflow-hidden">
-//               <pre className="text-[10px] text-[#6d28d9] font-mono overflow-x-auto whitespace-pre-wrap select-all pr-8">
-//                 {embedCode}
-//               </pre>
-//               <button
-//                 onClick={handleCopy}
-//                 className="absolute top-2.5 right-2.5 p-1.5 bg-white border border-slate-200 hover:bg-[#ede9fe]/30 rounded-lg text-[#6d28d9] transition-all shadow-sm cursor-pointer"
-//                 title="Copy embed script"
-//               >
-//                 {copied ? (
-//                   <Check size={12} className="text-emerald-500" />
-//                 ) : (
-//                   <Copy size={12} />
-//                 )}
-//               </button>
-//             </div>
-
-//             <div className="p-3 bg-[#ede9fe]/50 border border-[#a78bfa]/40 rounded-xl text-[10px] text-[#6d28d9] flex items-start gap-2 leading-relaxed font-semibold">
-//               <Info size={14} className="flex-none mt-0.5" />
-//               <span>
-//                 Note: The embed target requires browser permission for
-//                 Microphone and audio output access.
-//               </span>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function FormSection({
-//   title,
-//   icon,
-//   children,
-// }: {
-//   title: string;
-//   icon: React.ReactNode;
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <div className="glass-panel rounded-2xl p-6 space-y-4 shadow-sm border border-white/60">
-//       <div className="flex items-center gap-2 border-b border-slate-200/50 pb-3">
-//         <span className="text-[#a78bfa]">{icon}</span>
-//         <h2 className="text-sm font-bold uppercase tracking-wider text-[#6d28d9]">
-//           {title}
-//         </h2>
-//       </div>
-//       {children}
-//     </div>
-//   );
-// }
-
 "use client";
 
-import React, { useEffect, useState, useRef, use } from "react";
-import { useRouter } from "next/navigation";
+/**
+ * Agent settings — the post-creation twin of the create wizard.
+ *
+ * Everything the wizard collects is editable here, because it all round-trips
+ * through the API now (greeting, conversation starters, creativity, topics to
+ * avoid, response cap, memory flags), instead of being baked into the prompt
+ * where it could not be recovered.
+ */
+
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ChevronLeft,
-  Info,
-  User,
-  Settings,
-  Code,
-  Copy,
-  ChevronDown,
-  Play,
-  Pause,
-  Check,
-  Trash2,
-  Save,
-  Sparkles,
-  Volume2,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { apiClient } from "@/lib/api/client";
+import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  Blocks,
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  Code2,
+  Copy,
+  Eye,
+  Image as ImageIcon,
+  Info,
+  Loader2,
+  Mic,
+  Pause,
+  Play,
+  Plus,
+  Save,
+  SlidersHorizontal,
+  Trash2,
+  User,
+  Volume2,
+  X,
+} from "lucide-react";
+import {
+  deleteAgent as deleteAgentApi,
+  getAgent,
+  getEffectivePrompt,
+  updateAgent,
+} from "@/lib/api/agents";
+import { avatarPreviewSrc, getCatalogue } from "@/lib/api/avatars";
+import { MediaManager } from "@/components/agent/MediaManager";
+import { ToolsPicker } from "@/components/agent/ToolsPicker";
+import { KnowledgeManager } from "@/components/knowledge/KnowledgeManager";
 import { useAgentStore } from "@/store";
-import type { Agent } from "@/types";
-import { useToast } from "../../../../components/widget/Toast";
+import { useToast } from "@/components/widget/Toast";
+import {
+  ChipInput,
+  CreativitySlider,
+  GhostButton,
+  Label,
+  Modal,
+  PrimaryButton,
+  Row,
+  Spinner,
+  Toggle,
+} from "@/components/console/ui";
+import {
+  CARTESIA_VOICES,
+  LANGUAGES,
+  MUSETALK_AVATARS,
+  PERSONALITIES,
+} from "@/lib/catalog";
+import type {
+  Agent,
+  AgentUpdateInput,
+  AvatarCatalogueItem,
+  KnowledgeMode,
+  Pronunciation,
+} from "@/types";
 
-// ── Constants (kept in sync with the create flow) ────────────────────────────
+const TABS = [
+  "Avatar",
+  "Voice",
+  "Behavior",
+  "Knowledge",
+  "Conversation",
+  "Media",
+  "Tools",
+  "Embed",
+] as const;
+type Tab = (typeof TABS)[number];
 
-const MUSETALK_AVATARS = [
-  {
-    id: "ava",
-    name: "Ava",
-    description: "Professional female presenter",
-    preview_url: "/avatars/Ava.png",
-  },
-  {
-    id: "yongen",
-    name: "Yongen",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Yongen.png",
-  },
-  {
-    id: "ava2",
-    name: "Ava (High Quality)",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
-  },
-  {
-    id: "ava3",
-    name: "Ava (Mid Quality)",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
-  },
-  {
-    id: "ava4",
-    name: "Ava (Low Quality)",
-    description: "Default demo avatar",
-    preview_url: "/avatars/Ava.png",
-  },
-];
+const TAB_ICONS: Record<Tab, React.ReactNode> = {
+  Avatar: <User size={14} />,
+  Voice: <Volume2 size={14} />,
+  Behavior: <SlidersHorizontal size={14} />,
+  Knowledge: <BookOpen size={14} />,
+  Conversation: <Mic size={14} />,
+  Media: <ImageIcon size={14} />,
+  Tools: <Blocks size={14} />,
+  Embed: <Code2 size={14} />,
+};
 
-const CARTESIA_VOICES = [
-  {
-    id: "47c38ca4-5f35-497b-b1a3-415245fb35e1",
-    name: "Daniel",
-    description: "Deep, crisp, professional corporate American male",
-    language: "en",
-    gender: "Masculine",
-    previewUrl: "./voice/daniel.wav",
-  },
-  {
-    id: "db6b0ed5-d5d3-463d-ae85-518a07d3c2b4",
-    name: "Skylar",
-    description: "Warm, empathetic conversational American female ",
-    language: "en",
-    gender: "Feminine",
-    previewUrl: "./voice/sarah.wav",
-  },
-  {
-    id: "95d51f79-c397-46f9-b49a-23763d3eaa2d",
-    name: "Arushi",
-    description:
-      "Natural localized conversational English / Hindi hybrid speaker",
-    language: "hi",
-    gender: "Feminine",
-    previewUrl: "./voice/arushi.wav",
-  },
-  {
-    id: "62ae83ad-4f6a-430b-af41-a9bede9286ca",
-    name: "British Reading Lady",
-    description:
-      "Elegant, authoritative Received Pronunciation (RP) storyteller",
-    language: "en",
-    gender: "Feminine",
-    previewUrl: "./voice/british.wav",
-  },
-  {
-    id: "79f8b5fb-2cc8-479a-80df-29f7a7cf1a3e",
-    name: "Theo",
-    description:
-      "Friendly, casual corporate support representative from Oceania",
-    language: "en",
-    gender: "Masculine",
-    previewUrl: "./voice/theo.wav",
-  },
-];
+interface SettingsForm {
+  name: string;
+  description: string;
+  musetalk_avatar_id: string;
+  language: string;
+  voice_id: string;
+  pronunciations: Pronunciation[];
+  agent_role: string;
+  personality: string;
+  system_prompt: string;
+  llm_provider: string;
+  llm_model: string;
+  creativity: number;
+  knowledge_mode: KnowledgeMode;
+  greeting: string;
+  conversation_starters: string[];
+  topics_to_avoid: string[];
+  max_response_words: number | null;
+  enable_camera: boolean;
+  feedback_screen: boolean;
+  agent_memory: boolean;
+  share_memory: boolean;
+  is_public: boolean;
+}
 
-const inp =
-  "w-full px-4! py-2.5! bg-white! border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all shadow-sm";
+const toForm = (a: Agent): SettingsForm => ({
+  name: a.name ?? "",
+  description: a.description ?? "",
+  musetalk_avatar_id: a.musetalk_avatar_id || "ava",
+  language: a.language || "en",
+  voice_id: a.voice_id ?? "",
+  pronunciations: (a.pronunciations as Pronunciation[]) ?? [],
+  agent_role: a.agent_role ?? "",
+  personality: a.personality ?? PERSONALITIES[0],
+  system_prompt: a.system_prompt ?? "",
+  llm_provider: a.llm_provider || "openai",
+  llm_model: a.llm_model || "gpt-4o",
+  creativity: typeof a.creativity === "number" ? a.creativity : 0.4,
+  knowledge_mode: a.knowledge_mode || (a.restrict_to_knowledge ? "strict" : "hybrid"),
+  greeting: a.greeting ?? "",
+  conversation_starters: a.conversation_starters ?? [],
+  topics_to_avoid: a.topics_to_avoid ?? [],
+  max_response_words: a.max_response_words ?? null,
+  enable_camera: a.enable_camera ?? true,
+  feedback_screen: a.feedback_screen ?? false,
+  agent_memory: a.agent_memory ?? false,
+  share_memory: a.share_memory ?? false,
+  is_public: a.is_public ?? true,
+});
 
-// ── Page ─────────────────────────────────────────────────────────────────────
-
-export default function EditAgentPage({
+export default function AgentSettingsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const { updateAgent, removeAgent, agents } = useAgentStore();
+  const { updateAgent: updateInStore, removeAgent } = useAgentStore();
   const { showToast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [form, setForm] = useState<SettingsForm | null>(null);
+  const [avatars, setAvatars] = useState<AvatarCatalogueItem[]>([]);
+  const [tab, setTab] = useState<Tab>("Avatar");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  // Delete modal
+  const [saved, setSaved] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
 
-  // Voice preview
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    system_prompt: "",
-    voice_id: "",
-    musetalk_avatar_id: "ava",
-  });
-
-  useEffect(() => {
-    loadAgent();
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAgent(id);
+      setAgent(data);
+      setForm(toForm(data));
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "This agent could not be loaded.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
-    return () => {
-      if (audioRef.current) audioRef.current.pause();
-    };
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    getCatalogue().then(setAvatars).catch(() => setAvatars([]));
   }, []);
 
-  const set = (k: string, v: any) => setForm((prev) => ({ ...prev, [k]: v }));
+  const set = <K extends keyof SettingsForm>(k: K, v: SettingsForm[K]) =>
+    setForm((p) => (p ? { ...p, [k]: v } : p));
 
-  const loadAgent = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await apiClient.get<Agent>(`/api/agents/${id}`);
-      hydrate(data);
-    } catch (err) {
-      console.warn("Failed to load agent from API, searching local store", err);
-      const localAgent = agents.find((a) => a.id === id);
-      if (localAgent) {
-        hydrate(localAgent);
-      } else {
-        setError("Agent not found in registry.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const dirty = useMemo(() => {
+    if (!agent || !form) return false;
+    return JSON.stringify(form) !== JSON.stringify(toForm(agent));
+  }, [agent, form]);
 
-  const hydrate = (data: Agent) => {
-    setForm({
-      name: data.name ?? "",
-      description: data.description ?? "",
-      system_prompt: data.system_prompt ?? "",
-      voice_id: (data as any).voice_id ?? "",
-      musetalk_avatar_id: data.musetalk_avatar_id || "ava",
-    });
-  };
-
-  const handleTogglePreview = (
-    e: React.MouseEvent,
-    voiceId: string,
-    url: string,
-  ) => {
-    e.stopPropagation();
-    if (playingVoiceId === voiceId) {
-      audioRef.current?.pause();
-      setPlayingVoiceId(null);
-    } else {
-      if (audioRef.current) audioRef.current.pause();
-      audioRef.current = new Audio(url);
-      setPlayingVoiceId(voiceId);
-      audioRef.current.play().catch(() => setPlayingVoiceId(null));
-      audioRef.current.onended = () => setPlayingVoiceId(null);
-    }
-  };
-
-  const handleSubmit = async () => {
+  const save = async () => {
+    if (!form) return;
     if (!form.name.trim()) {
+      setTab("Avatar");
       setError("Agent name is required.");
       return;
     }
-    setIsSaving(true);
+    if (form.system_prompt.trim().length < 10) {
+      setTab("Behavior");
+      setError("The agent prompt needs at least a sentence.");
+      return;
+    }
+    setSaving(true);
     setError(null);
-    setSuccess(false);
-
-    const slug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const payload = { ...form, slug };
-
     try {
-      const response = await apiClient.patch<Agent>(
-        `/api/agents/${id}`,
-        payload,
-      );
-      updateAgent(id, response);
-      setSuccess(true);
-      showToast({
-        type: "success",
-        title: "Agent updated",
-        message: "Your changes were saved successfully.",
-      });
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      console.warn("API patch failed, editing client-side mock agent", err);
-      updateAgent(id, payload as any);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      // Explicit nulls matter: the API uses exclude_unset, so sending null is
+      // how "no word cap" / "no topics to avoid" is actually cleared.
+      const patch: AgentUpdateInput = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        musetalk_avatar_id: form.musetalk_avatar_id,
+        language: form.language,
+        voice_id: form.voice_id,
+        pronunciations: form.pronunciations.filter((p) => p.word && p.say_as).length
+          ? form.pronunciations.filter((p) => p.word && p.say_as)
+          : null,
+        agent_role: form.agent_role.trim() || null,
+        personality: form.personality,
+        system_prompt: form.system_prompt.trim(),
+        llm_provider: form.llm_provider,
+        llm_model: form.llm_model,
+        creativity: form.creativity,
+        knowledge_mode: form.knowledge_mode,
+        greeting: form.greeting.trim() || null,
+        conversation_starters: form.conversation_starters.length
+          ? form.conversation_starters
+          : null,
+        topics_to_avoid: form.topics_to_avoid.length ? form.topics_to_avoid : null,
+        max_response_words: form.max_response_words,
+        enable_camera: form.enable_camera,
+        feedback_screen: form.feedback_screen,
+        agent_memory: form.agent_memory,
+        share_memory: form.share_memory,
+        is_public: form.is_public,
+      };
+      const updated = await updateAgent(id, patch);
+      setAgent(updated);
+      setForm(toForm(updated));
+      updateInStore(id, updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      showToast({ type: "success", title: "Settings saved" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save the changes.");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    setIsDeleting(true);
-    if (id.startsWith("demo-")) {
-      removeAgent(id);
-      setShowDelete(false);
-      setIsDeleting(false);
-      router.push("/dashboard/agents");
-      return;
-    }
+    setDeleting(true);
     try {
-      await apiClient.delete(`/api/agents/${id}`);
+      await deleteAgentApi(id);
       removeAgent(id);
-      setShowDelete(false);
-      showToast({
-        type: "success",
-        title: "Voice agent deleted",
-        message: "The agent was removed successfully.",
-      });
+      showToast({ type: "success", title: "Agent deleted" });
       router.push("/dashboard/agents");
-    } catch {
-      setError("Failed to delete the agent from server");
-      showToast({
-        type: "error",
-        title: "Delete failed",
-        message: "Something went wrong. Try again.",
-      });
-    } finally {
-      setIsDeleting(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+      setDeleting(false);
+      setShowDelete(false);
     }
   };
 
-  const embedCode = `<!-- VoiceAgent Embeddable Assistant Widget -->
-<script src="${typeof window !== "undefined" ? window.location.origin : ""}/components/widget/widget.js" async>
-</script>
-
-<script>
-  window.VoiceAgentConfig = {
-    agentId: "${id}",
-    apiUrl: "${typeof window !== "undefined" ? window.location.origin : ""}"
-  };
-</script>
-`;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(embedCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-4 text-gray-400">
-        <div className="w-8 h-8 border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" />
-        <span className="text-sm font-medium">Loading agent settings…</span>
+      <div className="grid place-items-center py-32! gap-4!">
+        <Spinner />
+        <span className="text-[13px] text-[var(--muted)]">
+          Loading agent settings…
+        </span>
+      </div>
+    );
+  }
+
+  if (!agent || !form) {
+    return (
+      <div className="p-8! md:p-10! max-w-[720px] mx-auto!">
+        <div className="bg-white border border-red-200 rounded-2xl p-6! text-center">
+          <AlertCircle size={22} className="text-red-500 mx-auto! mb-2!" />
+          <p className="text-[15px] font-semibold text-[var(--ink)]">
+            Agent unavailable
+          </p>
+          <p className="text-[13px] text-[var(--slate)] mt-1!">
+            {error || "It may have been deleted."}
+          </p>
+          <Link
+            href="/dashboard/agents"
+            className="btn-dark px-4! py-2.5! text-[13.5px] mt-5! inline-flex"
+          >
+            Back to agents
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full text-[var(--foreground)] p-8! md:p-12!">
-      <div className="max-w-[1200px] mx-auto">
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-4!">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/agents">
-              <button className="p-2! -ml-2! rounded-lg text-gray-500 hover:text-black hover:bg-gray-100 transition-all">
-                <ChevronLeft size={20} />
-              </button>
-            </Link>
-            <div>
-              <span className="eyebrow mb-2!">
-                <Sparkles size={11} /> Configure
-              </span>
-              <h2 className="text-xl font-semibold text-[var(--ink)] tracking-tight mt-2!">
-                {form.name || "Agent"}
-              </h2>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link href={`/dashboard/agents/${id}/test`}>
-              <button className="px-4! py-2! bg-[var(--violet-050)] hover:bg-[var(--violet-100)] text-[var(--violet-700)] border border-[var(--violet-100)] text-xs font-semibold rounded-xl transition-all">
-                Test Speech Mode
-              </button>
-            </Link>
-            <button
-              onClick={handleSubmit}
-              disabled={isSaving}
-              className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4! py-2! rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm transition-all disabled:opacity-60"
-            >
-              <Save size={16} /> {isSaving ? "Saving…" : "Save Changes"}
-            </button>
-          </div>
+    <div className="p-6! md:p-10! max-w-[1200px] mx-auto! w-full!">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-3! mb-6!">
+        <Link href="/dashboard/agents">
+          <span className="w-9! h-9! grid place-items-center rounded-lg border border-[var(--line)] bg-white text-[var(--slate)] hover:bg-[var(--sidebar-hover)] transition-colors">
+            <ChevronLeft size={18} />
+          </span>
+        </Link>
+        <div className="min-w-0">
+          <h1 className="text-[20px] font-semibold text-[var(--ink)] tracking-tight truncate">
+            {form.name || "Agent"}
+          </h1>
+          <p className="text-[12.5px] text-[var(--muted)] truncate">
+            {form.description || "No description"} · runs at temp{" "}
+            {agent.effective_temperature?.toFixed(2) ?? "—"}
+          </p>
         </div>
 
-        <div className="border-b border-[var(--line)] my-6! w-full" />
-
-        {/* Alerts */}
-        {error && (
-          <div className="px-4! py-3! mb-6! bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
-            <Info size={16} /> {error}
-          </div>
-        )}
-        {success && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="px-4! py-3! mb-6! bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 text-sm font-medium flex items-center gap-2"
-          >
-            <Check size={16} /> Agent settings updated successfully!
-          </motion.div>
-        )}
-
-        <div className="space-y-6!">
-          {/* ── Basic Information ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6!">
-            <Card
-              title="Basic Information"
-              icon={<Info size={16} className="text-[#7c3aed]" />}
-            >
-              <div className="space-y-4!">
-                <Field label="Agent Name *">
-                  <input
-                    value={form.name}
-                    onChange={(e) => set("name", e.target.value)}
-                    placeholder="Support Desk 1"
-                    className={inp}
-                  />
-                </Field>
-                <Field label="Description">
-                  <textarea
-                    value={form.description}
-                    onChange={(e) => set("description", e.target.value)}
-                    rows={4}
-                    placeholder="Short description"
-                    className={`${inp} resize-none`}
-                  />
-                </Field>
-              </div>
-            </Card>
-
-            {/* ── Change Voice ── */}
-            <Card
-              title="Change Voice"
-              icon={<Volume2 size={16} className="text-[#7c3aed]" />}
-            >
-              <Field label="Voice">
-                <div className="relative">
-                  <select
-                    value={form.voice_id}
-                    onChange={(e) => set("voice_id", e.target.value)}
-                    className={`${inp} appearance-none pr-10!`}
-                  >
-                    <option value="">Select a voice timbre</option>
-                    {CARTESIA_VOICES.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.description})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3! top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronDown size={16} className="text-gray-400" />
-                  </div>
-                </div>
-              </Field>
-              {form.voice_id && (
-                <button
-                  onClick={(e) => {
-                    const v = CARTESIA_VOICES.find(
-                      (x) => x.id === form.voice_id,
-                    );
-                    if (v) handleTogglePreview(e, v.id, v.previewUrl);
-                  }}
-                  className="mt-3! flex items-center gap-2 text-xs font-semibold text-[var(--violet-700)] hover:text-[var(--violet)] transition-colors"
-                >
-                  {playingVoiceId === form.voice_id ? (
-                    <Pause size={14} fill="currentColor" />
-                  ) : (
-                    <Play size={14} fill="currentColor" />
-                  )}
-                  Preview Selected Voice
-                </button>
-              )}
-              {!form.voice_id && (
-                <p className="mt-3! text-xs text-gray-400">
-                  Pick a voice to preview how your agent will sound.
-                </p>
-              )}
-            </Card>
-          </div>
-
-          {/* ── Change Avatar ── */}
-          <Card
-            title="Change Avatar"
-            icon={<User size={16} className="text-[#7c3aed]" />}
-          >
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4!">
-              {MUSETALK_AVATARS.map((av) => (
-                <AvatarCard
-                  key={av.id}
-                  avatar={av}
-                  previewUrl={av.preview_url}
-                  selected={form.musetalk_avatar_id === av.id}
-                  onClick={() => set("musetalk_avatar_id", av.id)}
-                />
-              ))}
-            </div>
-          </Card>
-
-          {/* ── System Instructions ── */}
-          <Card
-            title="System Instructions"
-            icon={<Settings size={16} className="text-[#7c3aed]" />}
-          >
-            <Field label="System Prompt *">
-              <textarea
-                value={form.system_prompt}
-                onChange={(e) => set("system_prompt", e.target.value)}
-                rows={9}
-                placeholder="Write system instructions…"
-                className={`${inp} resize-none bg-gray-50! leading-relaxed`}
-              />
-            </Field>
-          </Card>
-
-          {/* ── Embed Code ── */}
-          <Card
-            title="Embed Code"
-            icon={<Code size={16} className="text-[#7c3aed]" />}
-          >
-            <div className="bg-[#f0f7ff] p-4! rounded-xl mb-6! text-[#0c4a6e] flex gap-3">
-              <Info size={20} className="shrink-0 text-blue-500" />
-              <div>
-                <p className="font-medium mb-1!">Implementation Guide:</p>
-                <ol className="list-decimal list-inside text-sm opacity-80">
-                  <li>Copy the script tag below</li>
-                  <li>
-                    Paste it into your index.html just before the &lt;/body&gt;
-                    tag
-                  </li>
-                </ol>
-              </div>
-            </div>
-            <div className="bg-[#1a1a1a] p-5! rounded-2xl mb-6! font-mono text-sm text-green-400 overflow-x-auto whitespace-pre-wrap">
-              {embedCode}
-            </div>
-            <button
-              onClick={handleCopy}
-              className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-6! py-2.5! rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Copy size={18} /> {copied ? "Copied!" : "Copy Embed Code"}
-            </button>
-          </Card>
-
-          {/* ── Danger Zone ── */}
-          <div className="bg-white border border-red-200 rounded-2xl p-6! shadow-[var(--shadow-sm)]">
-            <div className="flex items-center gap-2 mb-4! text-red-600">
-              <Trash2 size={16} />
-              <h2 className="text-base font-semibold text-[var(--ink)]">
-                Delete Agent
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-4!">
-              <p className="text-sm text-[var(--slate)] max-w-lg">
-                Permanently remove this voice agent and its configuration. This
-                action cannot be undone.
-              </p>
-              <button
-                onClick={() => setShowDelete(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white px-5! py-2.5! text-sm font-medium shadow-sm transition-all"
-              >
-                <Trash2 size={15} /> Delete Agent
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2! ml-auto">
+          <Link href={`/dashboard/agents/${id}/test`}>
+            <span className="inline-flex items-center gap-2! rounded-lg border border-[var(--line)] bg-white px-3.5! py-2.5! text-[13px] font-semibold text-[var(--slate)] hover:bg-[var(--sidebar-hover)] transition-colors">
+              <Mic size={14} /> Test
+            </span>
+          </Link>
+          <PrimaryButton onClick={save} loading={saving} disabled={!dirty}>
+            {saved ? <Check size={15} /> : <Save size={15} />}
+            {saved ? "Saved" : dirty ? "Save changes" : "Saved"}
+          </PrimaryButton>
         </div>
       </div>
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* Tabs */}
+      <div className="flex gap-1.5! overflow-x-auto no-scrollbar border-b border-[var(--line)] mb-6! pb-[1px]!">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex items-center gap-2! px-3.5! py-2.5! text-[13.5px] font-semibold whitespace-nowrap border-b-2 transition-colors ${
+              tab === t
+                ? "text-[var(--violet-700)] border-[var(--violet)]"
+                : "text-[var(--slate)] border-transparent hover:text-[var(--ink)]"
+            }`}
+          >
+            {TAB_ICONS[t]} {t}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4! py-3! mb-6!">
+          <AlertCircle size={15} className="shrink-0" /> {error}
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-[var(--muted)] hover:text-red-600"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {saved && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2! text-[13px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4! py-3! mb-6!"
+        >
+          <Check size={15} /> Saved. Live sessions pick this up on their next
+          start.
+        </motion.div>
+      )}
+
+      <div className="bg-white border border-[var(--line)] rounded-2xl p-6! md:p-7! shadow-[var(--shadow-sm)]">
+        {tab === "Avatar" && (
+          <div className="space-y-5!">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+              <div>
+                <Label>Agent name</Label>
+                <input
+                  value={form.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  className="fld px-3.5! py-2.5!"
+                />
+              </div>
+              <div>
+                <Label>Short description</Label>
+                <input
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  placeholder="What does this agent do?"
+                  className="fld px-3.5! py-2.5!"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Avatar</Label>
+              <AvatarGrid
+                avatars={avatars}
+                selected={form.musetalk_avatar_id}
+                onSelect={(v) => set("musetalk_avatar_id", v)}
+              />
+            </div>
+
+            <Row
+              title="Publicly embeddable"
+              desc="Off takes the widget offline without deleting the agent."
+            >
+              <Toggle on={form.is_public} onChange={(v) => set("is_public", v)} />
+            </Row>
+          </div>
+        )}
+
+        {tab === "Voice" && (
+          <VoiceSection form={form} set={set} />
+        )}
+
+        {tab === "Behavior" && (
+          <div className="space-y-5!">
+            <div>
+              <Label optional>Agent role</Label>
+              <input
+                value={form.agent_role}
+                onChange={(e) => set("agent_role", e.target.value)}
+                placeholder="e.g. Customer success manager"
+                className="fld px-3.5! py-2.5!"
+              />
+            </div>
+
+            <div>
+              <Label>Personality</Label>
+              <div className="relative">
+                <select
+                  value={form.personality}
+                  onChange={(e) => set("personality", e.target.value)}
+                  className="fld appearance-none px-3.5! py-2.5! pr-10!"
+                >
+                  {[form.personality, ...PERSONALITIES]
+                    .filter((p, i, arr) => p && arr.indexOf(p) === i)
+                    .map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Agent prompt</Label>
+              <textarea
+                value={form.system_prompt}
+                onChange={(e) => set("system_prompt", e.target.value)}
+                rows={10}
+                maxLength={20000}
+                className="fld px-3.5! py-3! resize-y leading-relaxed"
+              />
+              <div className="flex items-center gap-2! mt-2!">
+                <button
+                  onClick={() => setShowPrompt(true)}
+                  className="inline-flex items-center gap-1.5! text-[12.5px] font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)]"
+                >
+                  <Eye size={13} /> View the composed prompt
+                </button>
+                <span className="ml-auto text-[11px] text-[var(--muted)]">
+                  {form.system_prompt.length}/20000
+                </span>
+              </div>
+            </div>
+
+            <CreativitySlider
+              value={form.creativity}
+              onChange={(v) => set("creativity", v)}
+              temperature={agent.effective_temperature}
+            />
+
+            <div>
+              <Label>Model</Label>
+              <div className="relative">
+                <select
+                  value={`${form.llm_provider}:${form.llm_model}`}
+                  onChange={(e) => {
+                    const [provider, ...rest] = e.target.value.split(":");
+                    set("llm_provider", provider);
+                    set("llm_model", rest.join(":"));
+                  }}
+                  className="fld appearance-none px-3.5! py-2.5! pr-10!"
+                >
+                  <option value={`${form.llm_provider}:${form.llm_model}`}>
+                    {form.llm_model} (current)
+                  </option>
+                  <option value="openai:gpt-4o">GPT-4o</option>
+                  <option value="openai:gpt-4o-mini">GPT-4o mini</option>
+                  <option value="anthropic:claude-3-5-sonnet">
+                    Claude 3.5 Sonnet
+                  </option>
+                  <option value="anthropic:claude-3-5-haiku">
+                    Claude 3.5 Haiku
+                  </option>
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "Knowledge" && (
+          <KnowledgeManager
+            agentId={id}
+            knowledgeMode={form.knowledge_mode}
+            onModeChange={(mode) => {
+              set("knowledge_mode", mode);
+              // The manager already persisted it — keep the baseline in step so
+              // the Save button does not light up for a change we just saved.
+              setAgent((a) =>
+                a
+                  ? { ...a, knowledge_mode: mode, restrict_to_knowledge: mode === "strict" }
+                  : a,
+              );
+            }}
+          />
+        )}
+
+        {tab === "Conversation" && (
+          <div className="space-y-5!">
+            <div>
+              <Label optional>Greeting</Label>
+              <textarea
+                value={form.greeting}
+                onChange={(e) => set("greeting", e.target.value)}
+                rows={2}
+                maxLength={500}
+                placeholder={`Hi! I'm ${form.name}. How can I help you?`}
+                className="fld px-3.5! py-2.5! resize-y"
+              />
+              <p className="text-[11.5px] text-[var(--muted)] mt-1!">
+                The first thing the agent says, spoken and in chat.
+              </p>
+            </div>
+
+            <div>
+              <Label optional>Conversation starters</Label>
+              <ChipInput
+                values={form.conversation_starters}
+                onChange={(v) => set("conversation_starters", v)}
+                placeholder="Add a suggested question and press Enter…"
+                max={4}
+                maxLength={120}
+              />
+            </div>
+
+            <div>
+              <Label optional>Topics to avoid</Label>
+              <ChipInput
+                values={form.topics_to_avoid}
+                onChange={(v) => set("topics_to_avoid", v)}
+                placeholder="Type a topic and press Enter…"
+                max={20}
+                maxLength={80}
+              />
+            </div>
+
+            <Row
+              title="Limit response length"
+              desc="Cap the maximum number of words per reply."
+            >
+              <Toggle
+                on={form.max_response_words !== null}
+                onChange={(v) => set("max_response_words", v ? 80 : null)}
+              />
+            </Row>
+            {form.max_response_words !== null && (
+              <div className="pl-1!">
+                <input
+                  type="number"
+                  min={10}
+                  max={500}
+                  value={form.max_response_words}
+                  onChange={(e) =>
+                    set("max_response_words", parseInt(e.target.value) || 10)
+                  }
+                  className="fld px-3.5! py-2! w-32!"
+                />
+                <span className="text-[12px] text-[var(--muted)] ml-2!">
+                  words (10–500)
+                </span>
+              </div>
+            )}
+
+            <Row title="Enable camera" desc="Allow live video input in the widget.">
+              <Toggle
+                on={form.enable_camera}
+                onChange={(v) => set("enable_camera", v)}
+              />
+            </Row>
+            <Row
+              title="End-of-call feedback"
+              desc="Show a rating screen when the call ends."
+            >
+              <Toggle
+                on={form.feedback_screen}
+                onChange={(v) => set("feedback_screen", v)}
+              />
+            </Row>
+            <Row
+              title="Agent memory"
+              desc="Recall a returning visitor's earlier conversations with this agent."
+            >
+              <Toggle
+                on={form.agent_memory}
+                onChange={(v) => set("agent_memory", v)}
+              />
+            </Row>
+            <Row
+              title="Share memory across agents"
+              desc="Widen that recall to every agent on your account."
+            >
+              <Toggle
+                on={form.share_memory}
+                onChange={(v) => set("share_memory", v)}
+              />
+            </Row>
+          </div>
+        )}
+
+        {tab === "Media" && <MediaManager agentId={id} />}
+
+        {tab === "Tools" && <ToolsPicker agentId={id} />}
+
+        {tab === "Embed" && <EmbedSection agentId={id} isPublic={form.is_public} />}
+      </div>
+
+      {/* Danger zone */}
+      <div className="bg-white border border-red-200 rounded-2xl p-6! shadow-[var(--shadow-sm)] mt-6!">
+        <div className="flex flex-wrap items-center justify-between gap-4!">
+          <div>
+            <p className="text-[14px] font-semibold text-[var(--ink)] flex items-center gap-2!">
+              <Trash2 size={15} className="text-red-600" /> Delete this agent
+            </p>
+            <p className="text-[13px] text-[var(--slate)] mt-1! max-w-lg!">
+              Removes the agent, its knowledge base, media and conversation
+              history. This cannot be undone.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDelete(true)}
+            className="inline-flex items-center gap-2! rounded-lg bg-red-600 hover:bg-red-700 text-white px-5! py-2.5! text-[13px] font-semibold transition-colors"
+          >
+            <Trash2 size={15} /> Delete agent
+          </button>
+        </div>
+      </div>
+
+      {showPrompt && (
+        <EffectivePromptModal agentId={id} onClose={() => setShowPrompt(false)} />
+      )}
+
       {showDelete &&
         createPortal(
-          <div className="!fixed !inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm !p-4">
-            <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-start gap-4 border-b border-gray-100 !px-6 !py-5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <svg
-                    className="h-5 w-5 text-red-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                    />
-                  </svg>
+          <div className="fixed! inset-0! z-[9999] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4!">
+            <div className="w-full max-w-md! bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
+              <div className="flex items-start gap-4! border-b border-[var(--line)] px-6! py-5!">
+                <div className="w-11! h-11! shrink-0 grid place-items-center rounded-full bg-red-100 text-red-600">
+                  <Trash2 size={18} />
                 </div>
-                <div className="!mt-0.5">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Delete Voice Agent
-                  </h2>
-                  <p className="!mt-1.5 text-sm leading-relaxed text-gray-500">
-                    Are you sure you want to delete this voice agent? This
-                    action cannot be undone.
+                <div>
+                  <h3 className="text-[16px] font-semibold text-[var(--ink)]">
+                    Delete {form.name}?
+                  </h3>
+                  <p className="text-[13px] text-[var(--slate)] mt-1!">
+                    Anything embedding this agent will stop working immediately.
                   </p>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 bg-gray-50 !px-6 !py-4">
-                <button
-                  disabled={isDeleting}
-                  onClick={() => setShowDelete(false)}
-                  className="rounded-lg border border-gray-300 bg-white !px-4 !py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
-                >
+              <div className="flex justify-end gap-3! bg-[var(--sidebar)] px-6! py-4!">
+                <GhostButton onClick={() => setShowDelete(false)} disabled={deleting}>
                   Cancel
-                </button>
+                </GhostButton>
                 <button
-                  disabled={isDeleting}
+                  disabled={deleting}
                   onClick={handleDelete}
-                  className="inline-flex items-center justify-center rounded-lg bg-red-600 !px-4 !py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400"
+                  className="inline-flex items-center gap-2! rounded-lg bg-red-600 px-4! py-2.5! text-[13px] font-semibold text-white hover:bg-red-700 transition disabled:bg-red-400"
                 >
-                  {isDeleting ? (
-                    <span className="flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        />
-                      </svg>
-                      Deleting…
-                    </span>
-                  ) : (
-                    "Delete"
-                  )}
+                  {deleting && <Loader2 size={14} className="animate-spin" />}
+                  {deleting ? "Deleting…" : "Delete agent"}
                 </button>
               </div>
             </div>
@@ -1106,64 +710,319 @@ export default function EditAgentPage({
   );
 }
 
-// ── Shared UI Components (mirrors the create flow) ───────────────────────────
+// ── Sections ─────────────────────────────────────────────────────────────────
 
-function Card({ title, icon, children, className }: any) {
+function AvatarGrid({
+  avatars,
+  selected,
+  onSelect,
+}: {
+  avatars: AvatarCatalogueItem[];
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
+  const pool = avatars.length
+    ? avatars
+    : MUSETALK_AVATARS.map((a) => ({ ...a, provider: "musetalk" as const }));
+
   return (
-    <div
-      className={`bg-white border border-[var(--line)] rounded-2xl p-6! shadow-[var(--shadow-sm)] ${className || ""}`}
-    >
-      <div className="flex items-center gap-2 mb-6! text-[var(--violet-700)]">
-        {icon}{" "}
-        <h2 className="text-base font-semibold text-[var(--ink)]">{title}</h2>
+    <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-3!">
+      {pool.map((a) => {
+        const active = a.id === selected;
+        const src = avatarPreviewSrc(a.id, a.preview_url);
+        return (
+          <button
+            key={`${a.provider}-${a.id}`}
+            type="button"
+            onClick={() => onSelect(a.id)}
+            className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+              active
+                ? "border-[var(--violet)] ring-2 ring-[var(--violet-100)]"
+                : "border-transparent hover:border-[var(--line)]"
+            }`}
+          >
+            <div className="aspect-[3/4] bg-[var(--line-soft)] grid place-items-center">
+              {src ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={src}
+                  alt={a.name}
+                  className="w-full! h-full! object-cover"
+                />
+              ) : (
+                <span className="text-[11px] font-semibold text-[var(--muted)]">
+                  {a.name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </div>
+            {active && (
+              <span
+                className="absolute top-1.5! right-1.5! w-5! h-5! rounded-full grid place-items-center text-white"
+                style={{ background: "var(--grad)" }}
+              >
+                <Check size={11} strokeWidth={3} />
+              </span>
+            )}
+            <span className="absolute bottom-1.5! left-1.5! text-[10px] font-semibold text-white bg-black/55 px-1.5! py-0.5! rounded">
+              {a.name}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function VoiceSection({
+  form,
+  set,
+}: {
+  form: SettingsForm;
+  set: <K extends keyof SettingsForm>(k: K, v: SettingsForm[K]) => void;
+}) {
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => () => audioRef.current?.pause(), []);
+
+  const selected = CARTESIA_VOICES.find((v) => v.id === form.voice_id);
+
+  const toggle = () => {
+    if (!selected) return;
+    if (playing === selected.id) {
+      audioRef.current?.pause();
+      setPlaying(null);
+      return;
+    }
+    audioRef.current?.pause();
+    const audio = new Audio(selected.previewUrl.replace(/^\.?\/*/, "/"));
+    audioRef.current = audio;
+    setPlaying(selected.id);
+    audio.play().catch(() => setPlaying(null));
+    audio.onended = () => setPlaying(null);
+    audio.onerror = () => setPlaying(null);
+  };
+
+  const setEntry = (index: number, patch: Partial<Pronunciation>) =>
+    set(
+      "pronunciations",
+      form.pronunciations.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+    );
+
+  return (
+    <div className="space-y-5!">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4!">
+        <div>
+          <Label>Language</Label>
+          <div className="relative">
+            <select
+              value={form.language}
+              onChange={(e) => set("language", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.flag} {l.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Voice</Label>
+          <div className="relative">
+            <select
+              value={form.voice_id}
+              onChange={(e) => set("voice_id", e.target.value)}
+              className="fld appearance-none px-3.5! py-2.5! pr-10!"
+            >
+              <option value="">Select a voice…</option>
+              {CARTESIA_VOICES.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} — {v.description}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-3.5! top-1/2 -translate-y-1/2 pointer-events-none text-[var(--muted)]"
+            />
+          </div>
+          {selected && (
+            <button
+              onClick={toggle}
+              className="mt-3! inline-flex items-center gap-2! text-[13px] font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)] transition-colors"
+            >
+              {playing === selected.id ? (
+                <Pause size={14} fill="currentColor" />
+              ) : (
+                <Play size={14} fill="currentColor" />
+              )}
+              {playing === selected.id ? "Stop preview" : "Preview voice"}
+            </button>
+          )}
+        </div>
       </div>
-      {children}
+
+      <div>
+        <div className="flex items-center justify-between gap-3! mb-2!">
+          <Label optional>Pronunciation dictionary</Label>
+          <button
+            onClick={() =>
+              set("pronunciations", [
+                ...form.pronunciations,
+                { word: "", say_as: "" },
+              ])
+            }
+            className="inline-flex items-center gap-1.5! text-[12.5px] font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)]"
+          >
+            <Plus size={13} /> Add a word
+          </button>
+        </div>
+        {form.pronunciations.length === 0 ? (
+          <p className="text-[12.5px] text-[var(--muted)]">
+            Add a word when the agent mispronounces a name, brand or acronym.
+          </p>
+        ) : (
+          <div className="space-y-2!">
+            {form.pronunciations.map((p, i) => (
+              <div key={i} className="flex items-center gap-2!">
+                <input
+                  value={p.word}
+                  onChange={(e) => setEntry(i, { word: e.target.value })}
+                  placeholder="AVAT"
+                  className="fld px-3.5! py-2!"
+                />
+                <span className="text-[12px] text-[var(--muted)] shrink-0">
+                  say as
+                </span>
+                <input
+                  value={p.say_as}
+                  onChange={(e) => setEntry(i, { say_as: e.target.value })}
+                  placeholder="ay-vat"
+                  className="fld px-3.5! py-2!"
+                />
+                <button
+                  onClick={() =>
+                    set(
+                      "pronunciations",
+                      form.pronunciations.filter((_, idx) => idx !== i),
+                    )
+                  }
+                  className="w-8! h-8! grid place-items-center rounded-lg text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function Field({ label, children }: any) {
-  return (
-    <div className="w-full">
-      <label className="block text-[13px] font-medium text-[var(--slate)] mb-1.5!">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
+function EmbedSection({
+  agentId,
+  isPublic,
+}: {
+  agentId: string;
+  isPublic: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const code = `<!-- AVAT Avatar embeddable widget -->
+<script src="${origin}/components/widget/widget.js" async></script>
+<script>
+  window.VoiceAgentConfig = {
+    agentId: "${agentId}",
+    apiUrl: "${origin}"
+  };
+</script>`;
 
-function AvatarCard({ avatar, selected, onClick, previewUrl }: any) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative flex flex-col items-center gap-3 p-4! rounded-2xl border transition-all ${
-        selected
-          ? "border-[var(--violet)] bg-[var(--violet-050)] ring-1 ring-[var(--violet)]"
-          : "border-[var(--line)] bg-white hover:border-[var(--violet-100)] hover:bg-[var(--violet-050)]/40"
-      }`}
-    >
-      {selected && (
-        <span
-          className="absolute top-2.5! right-2.5! w-5 h-5 rounded-full grid place-items-center text-white"
-          style={{ background: "var(--grad)" }}
-        >
-          <Check size={11} strokeWidth={3} />
-        </span>
+    <div>
+      {!isPublic && (
+        <p className="flex items-start gap-2! text-[12.5px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3.5! py-3! mb-5!">
+          <AlertCircle size={14} className="shrink-0 mt-0.5!" />
+          This agent is not public, so the embedded widget will refuse to load.
+          Turn on <span className="font-semibold">Publicly embeddable</span> in
+          the Avatar tab.
+        </p>
       )}
-      <div className="rounded-full ring-1 ring-[var(--line)] bg-gray-100 overflow-hidden w-20 h-20">
-        <img
-          src={previewUrl || "https://ui-avatars.com/api/?name=A"}
-          alt={avatar.name}
-          className="w-full h-full object-cover"
-        />
+      <div className="flex items-start gap-3! bg-[var(--violet-050)] border border-[var(--violet-100)] rounded-xl p-4! mb-5!">
+        <Info size={16} className="text-[var(--violet-700)] shrink-0 mt-0.5!" />
+        <p className="text-[12.5px] text-[var(--slate)] leading-relaxed">
+          Paste this just before the closing <code>&lt;/body&gt;</code> tag. The
+          widget reads the agent&apos;s greeting, conversation starters and media
+          from the API at load, so changes here reach embedded sites without a
+          redeploy.
+        </p>
       </div>
-      <p
-        className={`text-sm font-medium ${selected ? "text-[var(--violet-700)]" : "text-[var(--ink)]"}`}
+      <pre className="bg-[#141026] text-emerald-300 text-[12.5px] leading-relaxed rounded-xl p-4! overflow-x-auto whitespace-pre-wrap break-all mb-4!">
+        {code}
+      </pre>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(code);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }}
+        className="btn-dark px-5! py-2.5! text-[13.5px]"
       >
-        {avatar.name}
-      </p>
-    </button>
+        <Copy size={15} /> {copied ? "Copied!" : "Copy embed code"}
+      </button>
+    </div>
+  );
+}
+
+function EffectivePromptModal({
+  agentId,
+  onClose,
+}: {
+  agentId: string;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<{ system_prompt: string; temperature: number } | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getEffectivePrompt(agentId)
+      .then(setData)
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Could not load the prompt."),
+      );
+  }, [agentId]);
+
+  return (
+    <Modal
+      wide
+      title="Composed prompt"
+      desc="Exactly what the live agent receives — your prompt plus role, personality, topics to avoid and the response cap."
+      onClose={onClose}
+      footer={<GhostButton onClick={onClose}>Close</GhostButton>}
+    >
+      {error ? (
+        <p className="text-[13px] text-red-600">{error}</p>
+      ) : !data ? (
+        <div className="grid place-items-center py-12!">
+          <Spinner />
+        </div>
+      ) : (
+        <>
+          <p className="text-[12px] text-[var(--muted)] mb-2!">
+            Temperature {data.temperature.toFixed(2)}
+          </p>
+          <pre className="bg-[var(--sidebar)] border border-[var(--line)] rounded-xl p-4! text-[12.5px] leading-relaxed whitespace-pre-wrap max-h-[420px]! overflow-y-auto">
+            {data.system_prompt}
+          </pre>
+        </>
+      )}
+    </Modal>
   );
 }
