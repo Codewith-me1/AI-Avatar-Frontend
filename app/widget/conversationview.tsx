@@ -1317,6 +1317,9 @@ export function ConversationView({
     AVATAR_OPTIONS.find((a) => a.id === agent.avatar_id) ?? DEFAULT_AVATAR;
   const [selectedAvatar] = useState(initialAvatar);
   const connectionAttempted = useRef(false);
+  // Set when the agent ends the call itself, so the disconnect that follows is
+  // not offered to the visitor as something to reconnect from.
+  const [ended, setEnded] = useState(false);
 
   // ── Chat state ─────────────────────────────────────────────────────
 
@@ -1374,10 +1377,16 @@ export function ConversationView({
     };
   }, [agent.id, roomName, userIdentity, connect, disconnect]);
 
-  // ── Media listener: the agent's show_media tool → chat card ────────
-  // The worker publishes the chosen item on the "media" data topic when it
-  // decides to put a flyer / card / price list on screen. The chat panel lives
-  // in the PARENT widget, so relay it up rather than rendering it here.
+  // ── Data channel: media cards + a deliberate end of session ────────
+  // The worker publishes on two topics:
+  //   "media"   — the item its show_media tool chose to put on screen
+  //   "session" — {type:"session_end"} sent BEFORE the room is torn down
+  // The chat panel and the end state both live in the PARENT widget, so relay
+  // rather than render here.
+  //
+  // Reacting to session_end matters: the LiveKit disconnect follows about 1.5s
+  // later, and without this the visitor sees a dropped connection instead of a
+  // clean goodbye.
   useEffect(() => {
     const lkRoom = getRoom();
     if (!lkRoom?.on) return;
@@ -1388,37 +1397,63 @@ export function ConversationView({
       _kind?: unknown,
       topic?: string,
     ) => {
-      if (topic && topic !== "media") return;
-      let parsed: { type?: string; media?: Record<string, unknown> } | null = null;
+      if (topic && topic !== "media" && topic !== "session") return;
+      let parsed: {
+        type?: string;
+        reason?: string;
+        media?: Record<string, unknown>;
+      } | null = null;
       try {
         parsed = JSON.parse(new TextDecoder().decode(payload));
       } catch {
         return; // not ours — another feature's data message
       }
-      if (!parsed || parsed.type !== "media" || !parsed.media) return;
-      // Uploaded media come through as "/api/media/<id>/file", which is
-      // relative to the API origin — not to the site hosting the widget. The
-      // parent would resolve it against its own domain and show a broken tile.
-      const media = {
-        ...parsed.media,
-        url: apiClient.absoluteUrl(String(parsed.media.url || "")),
-      };
-      try {
-        window.parent.postMessage({ type: "VOICE_AGENT_MEDIA", media }, "*");
-      } catch {}
+      if (!parsed) return;
+
+      if (parsed.type === "session_end") {
+        setEnded(true);
+        try {
+          window.parent.postMessage(
+            {
+              type: "VOICE_AGENT_SESSION_END",
+              reason: parsed.reason || "completed",
+            },
+            "*",
+          );
+        } catch {}
+        // Leave on our own terms. The parent has already been told, so the
+        // teardown reads as the end of the conversation, not a failure.
+        try {
+          disconnect();
+        } catch {}
+        return;
+      }
+
+      if (parsed.type === "media" && parsed.media) {
+        // Uploaded media come through as "/api/media/<id>/file", which is
+        // relative to the API origin — not to the site hosting the widget. The
+        // parent would resolve it against its own domain and show a broken tile.
+        const media = {
+          ...parsed.media,
+          url: apiClient.absoluteUrl(String(parsed.media.url || "")),
+        };
+        try {
+          window.parent.postMessage({ type: "VOICE_AGENT_MEDIA", media }, "*");
+        } catch {}
+      }
     };
 
     try {
       lkRoom.on("dataReceived", onData);
     } catch (e) {
-      console.warn("[media] data channel unavailable:", e);
+      console.warn("[data] channel unavailable:", e);
     }
     return () => {
       try {
         lkRoom.off?.("dataReceived", onData);
       } catch {}
     };
-  }, [getRoom, state]);
+  }, [getRoom, state, disconnect]);
 
   // ── Transcription listener: agent + user speech → chat messages ────
   // Transcripts arrive via ONE of two paths depending on livekit versions:
@@ -1686,7 +1721,7 @@ export function ConversationView({
           </motion.button>
         )}
 
-        {["idle", "disconnected", "error"].includes(state) && (
+        {!ended && ["idle", "disconnected", "error"].includes(state) && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

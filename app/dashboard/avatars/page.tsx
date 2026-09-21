@@ -6,7 +6,9 @@ import {
   Check,
   Clock,
   Loader2,
+  Lock,
   Plus,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -34,6 +36,14 @@ type Filter = "all" | "video" | "photo";
 const ACCEPT = ".png,.jpg,.jpeg,.webp,.mp4,.webm";
 const MAX_MB = 25;
 
+/**
+ * Bringing your own avatar is not finished: the server stores the upload but
+ * has no preparation pipeline, so a video avatar comes back `failed`. The
+ * upload UI below is complete and gated behind this one flag — flip it to true
+ * once the backend can actually prepare an avatar.
+ */
+const CREATE_ENABLED = false;
+
 export default function AvatarsPage() {
   const { showToast } = useToast();
   const [filter, setFilter] = useState<Filter>("all");
@@ -41,6 +51,13 @@ export default function AvatarsPage() {
   const [mine, setMine] = useState<CustomAvatar[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  const notifyComingSoon = () =>
+    showToast({
+      type: "info",
+      title: "Custom avatars are coming soon",
+      message: "Pick one from the gallery below in the meantime.",
+    });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,17 +98,48 @@ export default function AvatarsPage() {
   return (
     <div className="p-8! md:p-10! max-w-[1320px] mx-auto! w-full!">
       <div className="flex items-center justify-between gap-4! mb-2!">
-        <h1 className="text-[24px] font-semibold text-[var(--ink)] tracking-tight">
+        <h1 className="text-[24px] font-semibold text-[var(--ink)] tracking-tight flex items-center gap-2.5!">
           Avatars
+          <span className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-2! py-0.5! rounded-full">
+            Coming soon
+          </span>
         </h1>
-        <PrimaryButton onClick={() => setCreating(true)}>
-          <Plus size={16} /> Create Avatar
-        </PrimaryButton>
+        {CREATE_ENABLED ? (
+          <PrimaryButton onClick={() => setCreating(true)}>
+            <Plus size={16} /> Create Avatar
+          </PrimaryButton>
+        ) : (
+          <button
+            onClick={notifyComingSoon}
+            className="inline-flex items-center gap-2! rounded-xl border border-[var(--line)] bg-white px-4! py-2.5! text-[13.5px] font-semibold text-[var(--muted)] cursor-not-allowed"
+            title="Custom avatars are not available yet"
+          >
+            <Lock size={15} /> Create Avatar
+          </button>
+        )}
       </div>
-      <p className="text-[13px] text-[var(--slate)] mb-6!">
+      <p className="text-[13px] text-[var(--slate)] mb-5!">
         Choose a lifelike face for your agents. Every avatar streams live in the
         widget.
       </p>
+
+      {!CREATE_ENABLED && (
+        <div className="flex items-start gap-3! bg-[var(--violet-050)] border border-[var(--violet-100)] rounded-2xl px-4! py-3.5! mb-6!">
+          <Sparkles
+            size={17}
+            className="text-[var(--violet-700)] shrink-0 mt-0.5!"
+          />
+          <div className="text-[13px] text-[var(--slate)] leading-relaxed">
+            <p className="font-semibold text-[var(--ink)] mb-0.5!">
+              Custom avatars are coming soon
+            </p>
+            Bringing your own face or clip isn&apos;t available yet. The gallery
+            below is ready to use now — pick any of these from an agent&apos;s{" "}
+            <span className="font-medium text-[var(--ink)]">Avatar</span> tab and
+            it streams live in the widget.
+          </div>
+        </div>
+      )}
 
       <div className="inline-flex items-center gap-1! bg-white border border-[var(--line)] rounded-xl p-1! mb-6! shadow-[var(--shadow-sm)]">
         {(
@@ -146,15 +194,30 @@ export default function AvatarsPage() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4!">
             <button
-              onClick={() => setCreating(true)}
-              className="group flex flex-col items-center justify-center gap-2! aspect-[3/4] rounded-2xl border-2 border-dashed border-[var(--line)] bg-white hover:border-[var(--violet)] hover:bg-[var(--violet-050)] transition-all"
+              onClick={CREATE_ENABLED ? () => setCreating(true) : notifyComingSoon}
+              className={`group flex flex-col items-center justify-center gap-2! aspect-[3/4] rounded-2xl border-2 border-dashed transition-all ${
+                CREATE_ENABLED
+                  ? "border-[var(--line)] bg-white hover:border-[var(--violet)] hover:bg-[var(--violet-050)]"
+                  : "border-[var(--line)] bg-[var(--sidebar)]/60 cursor-not-allowed"
+              }`}
             >
-              <span className="w-11! h-11! rounded-full grid place-items-center bg-[var(--sidebar-hover)] text-[var(--muted)] group-hover:bg-white group-hover:text-[var(--violet-700)] transition-colors">
-                <Plus size={20} />
+              <span
+                className={`w-11! h-11! rounded-full grid place-items-center transition-colors ${
+                  CREATE_ENABLED
+                    ? "bg-[var(--sidebar-hover)] text-[var(--muted)] group-hover:bg-white group-hover:text-[var(--violet-700)]"
+                    : "bg-white text-[var(--muted)] border border-[var(--line)]"
+                }`}
+              >
+                {CREATE_ENABLED ? <Plus size={20} /> : <Lock size={18} />}
               </span>
               <span className="text-[13px] font-semibold text-[var(--ink)]">
                 Create Avatar
               </span>
+              {!CREATE_ENABLED && (
+                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-1.5! py-0.5! rounded">
+                  Coming soon
+                </span>
+              )}
             </button>
 
             {visibleStock.map((a) => (
@@ -173,7 +236,7 @@ export default function AvatarsPage() {
         </>
       )}
 
-      {creating && (
+      {CREATE_ENABLED && creating && (
         <CreateAvatarModal
           onClose={() => setCreating(false)}
           onCreated={(created) => {

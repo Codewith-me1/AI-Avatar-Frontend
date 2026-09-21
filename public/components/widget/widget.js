@@ -2769,6 +2769,55 @@
 
     .va-iframe { width: 100%; height: 100%; border: none; position: absolute; inset: 0; z-index: 10; }
 
+    /* ── END STATE ──
+       Shown when the agent ends the call (session_end on the "session" topic).
+       The agent sends it BEFORE the room tears down, so this replaces what
+       would otherwise look to the visitor like a dropped connection. */
+    .va-end-hud {
+      position: absolute; inset: 0; z-index: 40;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(10,12,40,0.55); backdrop-filter: blur(3px);
+    }
+    .va-end-hud.visible { display: flex; }
+    .va-end-card {
+      position: relative; background: rgba(255,255,255,0.97); border-radius: 18px;
+      padding: 26px 28px; max-width: 320px; width: calc(100% - 48px);
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.3); text-align: center;
+    }
+    .va-end-icon {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: #eef2ff; color: ${INK};
+      display: flex; align-items: center; justify-content: center;
+    }
+    .va-end-icon svg { width: 22px; height: 22px; }
+    .va-end-title { color: ${INK}; font-size: 17px; font-weight: 700; }
+    .va-end-sub { color: #6b7280; font-size: 12.5px; font-weight: 500; line-height: 1.45; }
+    .va-end-actions { display: flex; gap: 8px; margin-top: 6px; width: 100%; }
+    .va-end-action {
+      flex: 1; border-radius: 10px; padding: 9px 12px; cursor: pointer;
+      font-size: 12.5px; font-weight: 700; font-family: inherit;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .va-end-action.primary { background: ${INK}; color: #fff; border: 1px solid ${INK}; }
+    .va-end-action.primary:hover { background: #2b2a63; }
+    .va-end-action.ghost { background: #fff; color: #4b5563; border: 1px solid #e5e7eb; }
+    .va-end-action.ghost:hover { background: #f9fafb; }
+    /* Rating, only when the owner enabled the end-of-call feedback screen */
+    .va-stars { display: flex; gap: 4px; margin-top: 4px; }
+    .va-star {
+      background: none; border: none; cursor: pointer; padding: 2px;
+      font-size: 22px; line-height: 1; color: #d1d5db; transition: color 0.12s, transform 0.12s;
+    }
+    .va-star:hover { transform: scale(1.12); }
+    .va-star.on { color: #f59e0b; }
+    .va-end-note {
+      width: 100%; margin-top: 4px; border: 1px solid #e5e7eb; border-radius: 10px;
+      padding: 8px 10px; font-size: 12.5px; font-family: inherit; color: #111827;
+      resize: none; outline: none; background: #fff;
+    }
+    .va-end-note:focus { border-color: #a5b4fc; }
+
     /* ── CHAT PANEL (parent-rendered — always works) ── */
     .va-chat-panel {
       position: absolute; top: 0; right: 0; bottom: 0;
@@ -2932,6 +2981,33 @@
 
         <iframe class="va-iframe" id="vaIframe" allow="autoplay; microphone; camera; fullscreen"></iframe>
 
+        <div class="va-end-hud" id="vaEndHud">
+          <div class="va-end-card">
+            <div class="va-end-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+            <div class="va-end-title" id="vaEndTitle">Chat ended</div>
+            <div class="va-end-sub" id="vaEndSub">Thanks for stopping by.</div>
+            <div id="vaEndFeedback" style="display:none;width:100%">
+              <div class="va-end-sub" style="margin-top:4px">How did that go?</div>
+              <div class="va-stars" id="vaEndStars" style="justify-content:center">
+                <button class="va-star" data-score="1" aria-label="1 star">★</button>
+                <button class="va-star" data-score="2" aria-label="2 stars">★</button>
+                <button class="va-star" data-score="3" aria-label="3 stars">★</button>
+                <button class="va-star" data-score="4" aria-label="4 stars">★</button>
+                <button class="va-star" data-score="5" aria-label="5 stars">★</button>
+              </div>
+              <textarea class="va-end-note" id="vaEndNote" rows="2" placeholder="Anything to add? (optional)"></textarea>
+            </div>
+            <div class="va-end-actions">
+              <button class="va-end-action ghost" id="vaEndNewBtn">New chat</button>
+              <button class="va-end-action primary" id="vaEndCloseBtn">Close</button>
+            </div>
+          </div>
+        </div>
+
         <div class="va-powered" id="vaPowered">Powered by DIGITAL EMPLOYEES</div>
 
         <div class="va-bottom-bar" id="vaBottomBar">
@@ -3010,6 +3086,14 @@
   const chatEmpty       = document.getElementById("vaChatEmpty");
   const chatInput       = document.getElementById("vaChatInput");
   const chatSend        = document.getElementById("vaChatSend");
+  const endHud          = document.getElementById("vaEndHud");
+  const endTitle        = document.getElementById("vaEndTitle");
+  const endSub          = document.getElementById("vaEndSub");
+  const endFeedback     = document.getElementById("vaEndFeedback");
+  const endStars        = document.getElementById("vaEndStars");
+  const endNote         = document.getElementById("vaEndNote");
+  const endNewBtn       = document.getElementById("vaEndNewBtn");
+  const endCloseBtn     = document.getElementById("vaEndCloseBtn");
 
   let callSeconds = 0;
   let callTimerId = null;
@@ -3213,6 +3297,97 @@
     try { loadingVideo.currentTime = 0; loadingVideo.play().catch(() => {}); } catch (_) {}
   }
 
+  // ── Session end ────────────────────────────────────────────────────────────
+  // The agent publishes {type:"session_end"} on the "session" topic right
+  // before it closes the room. Acting on it is what separates a deliberate
+  // goodbye from what looks like a dropped call ~1.5s later.
+  let sessionEnded = false;
+  let feedbackEnabled = false;   // set from the agent's public config
+  let feedbackScore = 0;
+
+  function showEndState(reason) {
+    if (sessionEnded) return;
+    sessionEnded = true;
+
+    // Tear the call down on our terms so the iframe never renders its own
+    // "connection lost" state.
+    stopCallTimer();
+    try {
+      iframe.contentWindow.postMessage({ type: "VOICE_AGENT_DISCONNECT" }, "*");
+    } catch (_) {}
+
+    loadingHud.style.setProperty("display", "none", "important");
+    bottomBar.classList.remove("visible");   // no live controls after the end
+    statusPill.classList.remove("visible");
+    setChatOpen(false);
+
+    const wasGoodbye = !reason || reason === "completed";
+    endTitle.textContent = "Chat ended";
+    endSub.textContent = wasGoodbye
+      ? "Thanks for stopping by."
+      : String(reason).slice(0, 140);
+
+    feedbackScore = 0;
+    endNote.value = "";
+    endStars.querySelectorAll(".va-star").forEach((b) => b.classList.remove("on"));
+    endFeedback.style.display = feedbackEnabled ? "block" : "none";
+    endCloseBtn.textContent = feedbackEnabled ? "Send & close" : "Close";
+
+    endHud.classList.add("visible");
+  }
+
+  function resetEndState() {
+    sessionEnded = false;
+    feedbackScore = 0;
+    endHud.classList.remove("visible");
+    endFeedback.style.display = "none";
+    endNote.value = "";
+  }
+
+  function emitFeedback() {
+    if (!feedbackEnabled || (!feedbackScore && !endNote.value.trim())) return;
+    const detail = {
+      agentId: agentId,
+      score: feedbackScore || null,
+      comment: endNote.value.trim() || null,
+    };
+    // There is no feedback endpoint server-side yet, so hand it to the host
+    // page:  window.addEventListener("voiceagent:feedback", e => send(e.detail))
+    try {
+      window.dispatchEvent(new CustomEvent("voiceagent:feedback", { detail: detail }));
+    } catch (_) {}
+  }
+
+  endStars.addEventListener("click", (e) => {
+    const btn = e.target.closest(".va-star");
+    if (!btn) return;
+    feedbackScore = Number(btn.getAttribute("data-score")) || 0;
+    endStars.querySelectorAll(".va-star").forEach((b) => {
+      b.classList.toggle("on", Number(b.getAttribute("data-score")) <= feedbackScore);
+    });
+  });
+
+  endCloseBtn.addEventListener("click", () => {
+    emitFeedback();
+    closeWidget();
+  });
+
+  endNewBtn.addEventListener("click", () => {
+    emitFeedback();
+    startNewSession();
+  });
+
+  /** Fresh room + identity, without collapsing the card back to the banner. */
+  function startNewSession() {
+    resetEndState();
+    resetLoadingHud();
+    sessionUserIdentity = `user_${Math.random().toString(36).substring(7)}`;
+    targetRoomName      = `room_${agentId}_${Date.now()}`;
+    iframe.src = `${apiUrl}/widget/${agentId}?room=${targetRoomName}&identity=${sessionUserIdentity}`;
+    iframeLoaded = true;
+    iframe.addEventListener("load", () => { setTimeout(revealAgent, 1000); }, { once: true });
+  }
+
   function openWidget() {
     if (isOpen) return;
     isOpen = true;
@@ -3233,7 +3408,7 @@
     try { iframe.contentWindow.postMessage({ type: "VOICE_AGENT_DISCONNECT" }, "*"); } catch (_) {}
     widgetContainer.classList.remove("is-open");
     setTimeout(() => {
-      iframe.src = ""; iframeLoaded = false; resetLoadingHud();
+      iframe.src = ""; iframeLoaded = false; resetEndState(); resetLoadingHud();
     }, 420);
   }
 
@@ -3265,7 +3440,16 @@
     if (!event.data || !event.data.type) return;
     switch (event.data.type) {
       case "VOICE_AGENT_CLOSE":  closeWidget();  break;
-      case "VOICE_AGENT_READY":  revealAgent();  break;
+      case "VOICE_AGENT_READY":
+        // A late "ready" after a deliberate goodbye must not wipe the end card.
+        if (!sessionEnded) revealAgent();
+        break;
+
+      // The agent said goodbye and is about to close the room.
+      // shape: { type, reason }
+      case "VOICE_AGENT_SESSION_END":
+        showEndState(event.data.reason);
+        break;
 
       case "VOICE_AGENT_MIC_STATE":
         micEnabled = !!event.data.enabled;
@@ -3292,6 +3476,7 @@
       // the start. Keeps the embed in step with the dashboard without a redeploy.
       case "VOICE_AGENT_CONFIG": {
         const { name, greeting, starters, media } = event.data;
+        feedbackEnabled = !!event.data.feedbackScreen;
         if (name) {
           document.querySelectorAll("[data-va-agent-name]").forEach((el) => {
             el.textContent = name;

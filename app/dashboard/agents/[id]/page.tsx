@@ -30,9 +30,11 @@ import {
   Mic,
   Pause,
   Play,
+  Plug,
   Plus,
   Save,
   SlidersHorizontal,
+  Sparkles,
   Trash2,
   User,
   Volume2,
@@ -45,7 +47,10 @@ import {
   updateAgent,
 } from "@/lib/api/agents";
 import { avatarPreviewSrc, getCatalogue } from "@/lib/api/avatars";
-import { CapabilitiesPanel } from "@/components/agent/CapabilitiesPanel";
+import {
+  CapabilitiesPanel,
+  GoogleIntegrationCard,
+} from "@/components/agent/CapabilitiesPanel";
 import { MediaManager } from "@/components/agent/MediaManager";
 import { ToolsPicker } from "@/components/agent/ToolsPicker";
 import { KnowledgeManager } from "@/components/knowledge/KnowledgeManager";
@@ -644,14 +649,40 @@ export default function AgentSettingsPage({
         {tab === "Media" && <MediaManager agentId={id} />}
 
         {tab === "Tools" && (
-          <div className="space-y-8!">
-            <CapabilitiesPanel agentId={id} />
-            <div>
-              <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-3!">
-                Conversation tools
+          <div className="divide-y divide-[var(--line)]">
+            <section className="pb-8!">
+              <h3 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2!">
+                <Sparkles size={15} className="text-[var(--violet-700)]" /> Agent
+                capabilities
               </h3>
+              <p className="text-[12.5px] text-[var(--slate)] mt-1! mb-4!">
+                What this agent can do for a visitor: capture a lead, book a
+                meeting, hand over to a person.
+              </p>
+              <CapabilitiesPanel agentId={id} />
+            </section>
+
+            <section className="py-8!">
+              <h3 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2!">
+                <Blocks size={15} className="text-[var(--violet-700)]" /> Custom
+                tools
+              </h3>
+              <p className="text-[12.5px] text-[var(--slate)] mt-1! mb-4!">
+                Your own webhooks, and the call controls every agent gets.
+              </p>
               <ToolsPicker agentId={id} />
-            </div>
+            </section>
+
+            <section className="pt-8!">
+              <h3 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2!">
+                <Plug size={15} className="text-[var(--violet-700)]" />{" "}
+                Integrations
+              </h3>
+              <p className="text-[12.5px] text-[var(--slate)] mt-1! mb-4!">
+                Connected once for the whole account.
+              </p>
+              <GoogleIntegrationCard agentId={id} />
+            </section>
           </div>
         )}
 

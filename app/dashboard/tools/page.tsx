@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   Play,
+  Plug,
   Plus,
   Search,
   Sparkles,
@@ -26,7 +27,10 @@ import {
   updateTool,
 } from "@/lib/api/tools";
 import { listAgents } from "@/lib/api/agents";
-import { CapabilitiesPanel } from "@/components/agent/CapabilitiesPanel";
+import {
+  CapabilitiesPanel,
+  GoogleIntegrationCard,
+} from "@/components/agent/CapabilitiesPanel";
 import { useToast } from "@/components/widget/Toast";
 import {
   GhostButton,
@@ -47,6 +51,33 @@ import type {
 
 /** Remembers which agent the capability cards were last pointed at. */
 const AGENT_KEY = "avat_tools_agent";
+
+/**
+ * Three distinct kinds of tool, kept in separate sections rather than one long
+ * column: what the agent can do for a visitor, the owner's own webhooks, and
+ * the third-party accounts those lean on.
+ */
+const SECTIONS = [
+  {
+    key: "capabilities" as const,
+    label: "Agent capabilities",
+    hint: "Lead capture, appointments, human handoff",
+    icon: <Sparkles size={14} />,
+  },
+  {
+    key: "custom" as const,
+    label: "Custom tools",
+    hint: "Your webhooks, plus the built-in call controls",
+    icon: <Blocks size={14} />,
+  },
+  {
+    key: "integrations" as const,
+    label: "Integrations",
+    hint: "Google Calendar & Meet",
+    icon: <Plug size={14} />,
+  },
+];
+type SectionKey = (typeof SECTIONS)[number]["key"];
 
 const METHODS = ["POST", "GET", "PUT", "PATCH", "DELETE"];
 
@@ -100,6 +131,7 @@ export default function ToolsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentId, setAgentId] = useState<string>("");
   const [agentsLoading, setAgentsLoading] = useState(true);
+  const [section, setSection] = useState<SectionKey>("capabilities");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,9 +200,11 @@ export default function ToolsPage() {
           >
             <Info size={16} />
           </button>
-          <PrimaryButton onClick={() => setEditing("new")}>
-            <Plus size={16} /> Add tool
-          </PrimaryButton>
+          {section === "custom" && (
+            <PrimaryButton onClick={() => setEditing("new")}>
+              <Plus size={16} /> Add tool
+            </PrimaryButton>
+          )}
         </div>
       </div>
       <p className="text-[13px] text-[var(--slate)] mb-6!">
@@ -202,7 +236,43 @@ export default function ToolsPage() {
         </div>
       )}
 
-      {/* ── Per-agent capabilities ─────────────────────────────────────── */}
+      {/* ── Section switcher ── */}
+      <div className="flex flex-wrap items-stretch gap-2! mb-6!">
+        {SECTIONS.map((sec) => {
+          const active = section === sec.key;
+          return (
+            <button
+              key={sec.key}
+              onClick={() => setSection(sec.key)}
+              className={`flex-1 min-w-[200px]! text-left rounded-xl border px-4! py-3! transition-all ${
+                active
+                  ? "bg-white border-[var(--violet)] ring-2 ring-[var(--violet-100)] shadow-[var(--shadow-sm)]"
+                  : "bg-white border-[var(--line)] hover:border-[var(--violet-100)] hover:bg-[var(--sidebar-hover)]/40"
+              }`}
+            >
+              <span
+                className={`flex items-center gap-2! text-[13.5px] font-semibold ${
+                  active ? "text-[var(--violet-700)]" : "text-[var(--ink)]"
+                }`}
+              >
+                {sec.icon} {sec.label}
+                {sec.key === "custom" && (
+                  <span className="ml-auto text-[11px] font-medium text-[var(--muted)]">
+                    {customCount + 2}
+                  </span>
+                )}
+              </span>
+              <span className="block text-[11.5px] text-[var(--muted)] mt-0.5!">
+                {sec.hint}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Per-agent capabilities ── */}
+      {section === "capabilities" && (
+      <>
       <div className="flex flex-wrap items-center gap-3! mb-4!">
         <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2!">
           <Sparkles size={15} className="text-[var(--violet-700)]" /> Agent
@@ -260,20 +330,47 @@ export default function ToolsPage() {
           </Link>
         </div>
       ) : (
-        <div className="mb-10!">
-          {/* Remount on agent change so every card refetches for that agent. */}
-          <CapabilitiesPanel key={agentId} agentId={agentId} />
-        </div>
+        /* Remount on agent change so every card refetches for that agent. */
+        <CapabilitiesPanel key={agentId} agentId={agentId} />
+      )}
+      </>
       )}
 
-      {/* ── Conversation tools ──────────────────────────────────────────── */}
-      <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2! mb-4!">
-        <Blocks size={15} className="text-[var(--violet-700)]" /> Conversation
-        tools
+      {/* ── Integrations ── */}
+      {section === "integrations" && (
+        <>
+          <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2! mb-1!">
+            <Plug size={15} className="text-[var(--violet-700)]" /> Integrations
+          </h2>
+          <p className="text-[13px] text-[var(--slate)] mb-4!">
+            Connected once for the whole account — every agent that books
+            appointments uses it.
+          </p>
+          {agentId ? (
+            <GoogleIntegrationCard key={agentId} agentId={agentId} />
+          ) : (
+            <p className="text-[13px] text-[var(--slate)] bg-white border border-[var(--line)] rounded-2xl px-4! py-4!">
+              Create an agent first — a calendar connection only does something
+              once an agent can book.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* ── Custom tools ── */}
+      {section === "custom" && (
+      <>
+      <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2! mb-1!">
+        <Blocks size={15} className="text-[var(--violet-700)]" /> Custom tools
         <span className="text-[var(--muted)] font-normal">
           ({customCount} custom · 2 built in)
         </span>
       </h2>
+      <p className="text-[13px] text-[var(--slate)] mb-4!">
+        HTTPS webhooks the model can call mid-conversation, plus the two call
+        controls every agent gets automatically. Attach a custom tool to an
+        agent from that agent&apos;s Tools tab.
+      </p>
 
       {loadError && (
         <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4! py-3! mb-6!">
@@ -378,6 +475,8 @@ export default function ToolsPage() {
           </p>
         )}
       </div>
+      </>
+      )}
 
       {editing && (
         <ToolEditor

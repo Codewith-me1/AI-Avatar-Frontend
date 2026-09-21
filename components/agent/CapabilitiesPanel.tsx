@@ -185,10 +185,13 @@ function validateHours(hours: EditHours): string | null {
 
 export function CapabilitiesPanel({
   agentId,
-  showIntegrations = true,
+  showIntegrations = false,
 }: {
   agentId: string;
-  /** The Google connection is account-level; hide it where it's shown already. */
+  /**
+   * Google is account-level and gets its own Integrations section, so it is
+   * off by default here. Pass true only where one combined block is wanted.
+   */
   showIntegrations?: boolean;
 }) {
   const { showToast } = useToast();
@@ -469,6 +472,36 @@ export function CapabilitiesPanel({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The Google connection on its own, for an Integrations section.
+ *
+ * It re-reads the agent's CRM settings purely for the contextual copy (is
+ * booking even on, is there a fallback Meet room), which keeps this usable
+ * without threading state through the page.
+ */
+export function GoogleIntegrationCard({ agentId }: { agentId: string }) {
+  const [settings, setSettings] = useState<CrmSettings | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getCrmSettings(agentId)
+      .then((s) => alive && setSettings(s))
+      .catch(() => {
+        /* the card works without the hints */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [agentId]);
+
+  return (
+    <GoogleCalendarCard
+      appointmentsOn={!!settings?.enable_appointments}
+      meetLink={settings?.meet_link || null}
+    />
   );
 }
 

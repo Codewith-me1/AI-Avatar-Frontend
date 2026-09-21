@@ -36,6 +36,8 @@ type NavLink = {
   label: string;
   icon: React.ReactNode;
   external?: boolean;
+  /** Reachable, but the feature behind it is not finished yet. */
+  soon?: boolean;
 };
 
 const NAV: { heading?: string; items: NavLink[] }[] = [
@@ -51,7 +53,7 @@ const NAV: { heading?: string; items: NavLink[] }[] = [
       { href: "/dashboard/agents", label: "Agents", icon: <Bot size={18} strokeWidth={1.9} /> },
       { href: "/dashboard/knowledge", label: "Knowledge", icon: <BookOpen size={18} strokeWidth={1.9} /> },
       { href: "/dashboard/tools", label: "Tools", icon: <Blocks size={18} strokeWidth={1.9} /> },
-      { href: "/dashboard/avatars", label: "Avatars", icon: <CircleUserRound size={18} strokeWidth={1.9} /> },
+      { href: "/dashboard/avatars", label: "Avatars", icon: <CircleUserRound size={18} strokeWidth={1.9} />, soon: true },
     ],
   },
   {
@@ -233,7 +235,7 @@ export default function DashboardLayout({
   );
 }
 
-function NavItem({ href, label, icon, external }: NavLink) {
+function NavItem({ href, label, icon, external, soon }: NavLink) {
   const pathname = usePathname();
   const isActive =
     external || href === "/"
@@ -264,6 +266,11 @@ function NavItem({ href, label, icon, external }: NavLink) {
         {icon}
       </span>
       <span>{label}</span>
+      {soon && (
+        <span className="ml-auto text-[9.5px] font-bold uppercase tracking-wide text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] px-1.5! py-0.5! rounded">
+          Soon
+        </span>
+      )}
     </Link>
   );
 }
