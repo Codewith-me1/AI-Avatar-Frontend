@@ -42,17 +42,23 @@ export function Toggle({
   on,
   onChange,
   disabled,
+  label,
 }: {
   on: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
+  /** Announced by screen readers — the visible text is in the row beside it. */
+  label?: string;
 }) {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!on)}
-      className={`relative w-11! h-6! rounded-full transition-colors shrink-0 disabled:opacity-40 ${
+      className={`relative w-11! h-6! rounded-full transition-colors shrink-0 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--violet)] ${
         on ? "bg-[var(--ink)]" : "bg-[var(--line)]"
       }`}
     >

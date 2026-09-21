@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Contact,
   CalendarClock,
@@ -13,19 +12,14 @@ import {
   X,
   Trash2,
   Check,
-  RefreshCw,
   AlertCircle,
   Phone,
   Mail,
-  Building2,
   Clock,
   ChevronDown,
   UserCheck,
   CalendarPlus,
-  Sparkles,
-  ShieldAlert,
   Users,
-  Video,
 } from "lucide-react";
 import { getAgentMap, parseUTC, relTime, fmtNumber } from "@/lib/api/dashboard";
 import {
@@ -39,18 +33,14 @@ import {
   createAppointment,
   updateAppointmentStatus,
   getAvailability,
-  getCrmSettings,
-  putCrmSettings,
   LEAD_STATUSES,
-  WEEK_DAYS,
   type Lead,
   type Appointment,
   type CrmSummary,
-  type CrmSettings,
   type AvailabilitySlot,
   type ApptStatus,
-  type BusinessHours,
 } from "@/lib/api/crm";
+import { CapabilitiesPanel } from "@/components/agent/CapabilitiesPanel";
 
 const inp =
   "w-full! px-3.5! py-2.5! bg-white border border-[var(--line)] rounded-xl text-[var(--ink)] text-sm placeholder-gray-400 outline-none focus:border-[var(--violet)] focus:ring-2 focus:ring-[var(--violet-100)] transition-all";
@@ -77,12 +67,6 @@ const scoreTone = (n: number) =>
     : n >= 40
       ? "text-amber-700 bg-amber-50 border-amber-100"
       : "text-gray-500 bg-gray-50 border-gray-200";
-
-const TZS = [
-  "UTC", "America/New_York", "America/Chicago", "America/Los_Angeles",
-  "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Kolkata",
-  "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney",
-];
 
 function fmtDateTime(iso: string, tz?: string): string {
   const t = parseUTC(iso);
@@ -787,210 +771,11 @@ function BookModal({ agentId, onClose, onBooked }: { agentId: string; onClose: (
 }
 
 // ── Settings / capabilities tab ───────────────────────────────────────────────
-type EditHours = Record<string, { open: boolean; start: string; end: string }>;
-
-function toEditHours(bh: BusinessHours): EditHours {
-  const out: EditHours = {};
-  for (const d of WEEK_DAYS) {
-    const r = bh?.[d] || [];
-    out[d] = r.length ? { open: true, start: r[0][0], end: r[0][1] } : { open: false, start: "09:00", end: "17:00" };
-  }
-  return out;
-}
-function fromEditHours(h: EditHours): BusinessHours {
-  const out: BusinessHours = {};
-  for (const d of WEEK_DAYS) out[d] = h[d].open ? [[h[d].start, h[d].end]] : [];
-  return out;
-}
-
+// The capability switches, scheduling rules and Google connection live in one
+// shared panel (also used by /dashboard/tools and the agent's Tools tab), so
+// there is a single implementation of the controls that drive the live agent.
 function SettingsTab({ agentId }: { agentId: string }) {
-  const [settings, setSettings] = useState<CrmSettings | null>(null);
-  const [hours, setHours] = useState<EditHours | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveErr, setSaveErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    getCrmSettings(agentId)
-      .then((s) => {
-        setSettings(s);
-        setHours(toEditHours(s.appointment_config.business_hours));
-      })
-      .catch(() => setSettings(null))
-      .finally(() => setLoading(false));
-  }, [agentId]);
-
-  const patchCfg = (patch: Partial<CrmSettings["appointment_config"]>) =>
-    setSettings((s) => (s ? { ...s, appointment_config: { ...s.appointment_config, ...patch } } : s));
-
-  const save = async () => {
-    if (!settings || !hours) return;
-    setSaving(true);
-    setSaved(false);
-    setSaveErr(null);
-    try {
-      const body: CrmSettings = {
-        ...settings,
-        meet_link: (settings.meet_link || "").trim() || null,
-        appointment_config: { ...settings.appointment_config, business_hours: fromEditHours(hours) },
-      };
-      const res = await putCrmSettings(agentId, body);
-      setSettings(res);
-      setHours(toEditHours(res.appointment_config.business_hours));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setSaveErr(
-        e instanceof Error && e.message
-          ? e.message
-          : "Couldn't save — check the Google Meet link.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading || !settings || !hours) {
-    return (
-      <div className="bg-white border border-[var(--line)] rounded-2xl p-10! grid place-items-center">
-        <div className="w-7! h-7! border-2 border-[var(--line)] border-t-[var(--violet)] rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const cfg = settings.appointment_config;
-  const tzList = TZS.includes(cfg.timezone) ? TZS : [cfg.timezone, ...TZS];
-
-  return (
-    <div className="space-y-6!">
-      {/* Capability flags */}
-      <div className="bg-white border border-[var(--line)] rounded-2xl p-6! shadow-[var(--shadow-sm)]">
-        <div className="flex items-center gap-2! mb-1!">
-          <Sparkles size={16} className="text-[var(--violet-700)]" />
-          <h2 className="text-base font-semibold text-[var(--ink)]">Agent capabilities</h2>
-        </div>
-        <p className="text-[13px] text-[var(--slate)] mb-5!">
-          Tools are registered per session — a disabled capability isn&apos;t just discouraged, the model can&apos;t call it. Applies on the agent&apos;s next conversation.
-        </p>
-        <div className="divide-y divide-[var(--line-soft)]">
-          <CapRow
-            icon={<Contact size={16} />}
-            title="Lead capture"
-            desc="save_lead_details — records name, email, phone, company & interest, merging across turns."
-            on={settings.enable_lead_capture}
-            onToggle={() => setSettings({ ...settings, enable_lead_capture: !settings.enable_lead_capture })}
-          />
-          <CapRow
-            icon={<CalendarClock size={16} />}
-            title="Appointments"
-            desc="check_appointment_availability, book_appointment, cancel_appointment — off by default."
-            on={settings.enable_appointments}
-            onToggle={() => setSettings({ ...settings, enable_appointments: !settings.enable_appointments })}
-          />
-          <CapRow
-            icon={<ShieldAlert size={16} />}
-            title="Human handoff"
-            desc="request_human_handoff — records a reason and promotes the lead to qualified."
-            on={settings.enable_human_handoff}
-            onToggle={() => setSettings({ ...settings, enable_human_handoff: !settings.enable_human_handoff })}
-          />
-        </div>
-      </div>
-
-      {/* Appointment config */}
-      {settings.enable_appointments && (
-        <div className="bg-white border border-[var(--line)] rounded-2xl p-6! shadow-[var(--shadow-sm)]">
-          <div className="flex items-center gap-2! mb-1!">
-            <CalendarClock size={16} className="text-[var(--violet-700)]" />
-            <h2 className="text-base font-semibold text-[var(--ink)]">Scheduling</h2>
-          </div>
-          <p className="text-[13px] text-[var(--slate)] mb-5!">
-            Slots are generated in your timezone and spoken to visitors in theirs.
-          </p>
-
-          {/* Google Meet link */}
-          <div className="mb-6! p-4! rounded-xl border border-[var(--line)] bg-[var(--violet-050)]/40">
-            <label className="flex items-center gap-2! text-[13px] font-medium text-[var(--slate)] mb-1.5!">
-              <Video size={14} className="text-[var(--violet-700)]" /> Google Meet link
-            </label>
-            <input
-              className={inp}
-              value={settings.meet_link || ""}
-              onChange={(e) => setSettings({ ...settings, meet_link: e.target.value })}
-              placeholder="meet.google.com/abc-defg-hij  (or a bare code)"
-            />
-            <p className="text-[12px] text-[var(--muted)] mt-1.5!">
-              Reused for every booking and added to confirmation emails. Paste the
-              full URL or just the code — we normalize it and reject non-Meet links.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4! mb-6!">
-            <L label="Timezone">
-              <select className={`${inp} appearance-none`} value={cfg.timezone} onChange={(e) => patchCfg({ timezone: e.target.value })}>
-                {tzList.map((t) => (<option key={t} value={t}>{t}</option>))}
-              </select>
-            </L>
-            <L label="Slot length (min)"><input type="number" min={5} max={480} className={inp} value={cfg.slot_minutes} onChange={(e) => patchCfg({ slot_minutes: +e.target.value })} /></L>
-            <L label="Buffer (min)"><input type="number" min={0} max={240} className={inp} value={cfg.buffer_minutes} onChange={(e) => patchCfg({ buffer_minutes: +e.target.value })} /></L>
-            <L label="Min notice (min)"><input type="number" min={0} max={20160} className={inp} value={cfg.min_notice_minutes} onChange={(e) => patchCfg({ min_notice_minutes: +e.target.value })} /></L>
-            <L label="Max days ahead"><input type="number" min={1} max={180} className={inp} value={cfg.max_days_ahead} onChange={(e) => patchCfg({ max_days_ahead: +e.target.value })} /></L>
-          </div>
-
-          <p className="text-[13px] font-medium text-[var(--slate)] mb-3!">Business hours</p>
-          <div className="space-y-2!">
-            {WEEK_DAYS.map((d) => (
-              <div key={d} className="flex items-center gap-3! flex-wrap">
-                <label className="flex items-center gap-2! w-28! cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={hours[d].open}
-                    onChange={(e) => setHours({ ...hours, [d]: { ...hours[d], open: e.target.checked } })}
-                    className="w-4! h-4! accent-[var(--violet)]"
-                  />
-                  <span className="text-[13px] font-medium text-[var(--ink)] capitalize">{d}</span>
-                </label>
-                {hours[d].open ? (
-                  <div className="flex items-center gap-2!">
-                    <input type="time" value={hours[d].start} onChange={(e) => setHours({ ...hours, [d]: { ...hours[d], start: e.target.value } })} className={`${inp} w-32!`} />
-                    <span className="text-[var(--muted)] text-sm">to</span>
-                    <input type="time" value={hours[d].end} onChange={(e) => setHours({ ...hours, [d]: { ...hours[d], end: e.target.value } })} className={`${inp} w-32!`} />
-                  </div>
-                ) : (
-                  <span className="text-[13px] text-[var(--muted)]">Closed</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {saveErr && (
-        <div className="flex items-center gap-2! text-[13px] text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-4! py-3!">
-          <AlertCircle size={15} className="shrink-0" /> {saveErr}
-        </div>
-      )}
-
-      <div className="flex items-center justify-end gap-3!">
-        {saved && (
-          <span className="flex items-center gap-1.5! text-[13px] font-medium text-emerald-700">
-            <Check size={15} /> Saved
-          </span>
-        )}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="inline-flex items-center gap-2! text-white text-[13px] font-semibold px-6! py-2.5! rounded-xl shadow-[0_8px_24px_rgba(124,58,237,0.25)] disabled:opacity-60"
-          style={{ background: "var(--grad)" }}
-        >
-          {saving ? <RefreshCw size={15} className="animate-spin" /> : <Check size={15} />}
-          Save capabilities
-        </button>
-      </div>
-    </div>
-  );
+  return <CapabilitiesPanel agentId={agentId} />;
 }
 
 // ── Small shared pieces ───────────────────────────────────────────────────────
@@ -1002,29 +787,6 @@ function Stat({ label, value, icon, accent }: { label: string; value: string; ic
       </span>
       <div className="text-[22px] font-semibold text-[var(--ink)] font-display leading-none">{value}</div>
       <div className="text-[12.5px] text-[var(--slate)] mt-1!">{label}</div>
-    </div>
-  );
-}
-
-function CapRow({ icon, title, desc, on, onToggle }: { icon: React.ReactNode; title: string; desc: string; on: boolean; onToggle: () => void }) {
-  return (
-    <div className="flex items-start justify-between gap-4! py-4!">
-      <div className="flex items-start gap-3!">
-        <span className="w-9! h-9! rounded-lg grid place-items-center text-[var(--violet-700)] bg-[var(--violet-050)] border border-[var(--violet-100)] shrink-0">{icon}</span>
-        <div>
-          <p className="text-[14px] font-medium text-[var(--ink)]">{title}</p>
-          <p className="text-[12.5px] text-[var(--muted)] mt-0.5! max-w-[520px]!">{desc}</p>
-        </div>
-      </div>
-      <button
-        onClick={onToggle}
-        role="switch"
-        aria-checked={on}
-        className={`relative w-11! h-6! rounded-full shrink-0 transition-colors ${on ? "" : "bg-[var(--line)]"}`}
-        style={on ? { background: "var(--grad)" } : undefined}
-      >
-        <span className={`absolute top-0.5! left-0.5! w-5! h-5! rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : ""}`} />
-      </button>
     </div>
   );
 }

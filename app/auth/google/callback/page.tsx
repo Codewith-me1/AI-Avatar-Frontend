@@ -64,10 +64,18 @@ export default function GoogleCallbackPage() {
           setMessage(
             email ? `Calendar connected as ${email}.` : "Calendar connected.",
           );
-          setTimeout(
-            () => router.replace("/dashboard/settings?google=connected"),
-            900,
-          );
+          // Return to whichever page started the flow (Tools, an agent's
+          // Tools tab, Settings). Only same-origin dashboard paths are
+          // honoured, so a poisoned value cannot redirect off-site.
+          let back = "/dashboard/settings?google=connected";
+          try {
+            const stored = sessionStorage.getItem("avat_google_return");
+            sessionStorage.removeItem("avat_google_return");
+            if (stored && /^\/dashboard(\/|\?|$)/.test(stored)) back = stored;
+          } catch {
+            /* storage unavailable — fall back to Settings */
+          }
+          setTimeout(() => router.replace(back), 900);
         }
       })
       .catch((e) => {

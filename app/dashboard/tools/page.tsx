@@ -1,16 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   Blocks,
+  Bot,
   CheckCircle2,
+  ChevronDown,
   Info,
   Loader2,
   Pencil,
   Play,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -21,6 +25,8 @@ import {
   testTool,
   updateTool,
 } from "@/lib/api/tools";
+import { listAgents } from "@/lib/api/agents";
+import { CapabilitiesPanel } from "@/components/agent/CapabilitiesPanel";
 import { useToast } from "@/components/widget/Toast";
 import {
   GhostButton,
@@ -31,7 +37,16 @@ import {
   Spinner,
   Toggle,
 } from "@/components/console/ui";
-import type { ToolAuthType, ToolInput, ToolRow, ToolTestResult } from "@/types";
+import type {
+  Agent,
+  ToolAuthType,
+  ToolInput,
+  ToolRow,
+  ToolTestResult,
+} from "@/types";
+
+/** Remembers which agent the capability cards were last pointed at. */
+const AGENT_KEY = "avat_tools_agent";
 
 const METHODS = ["POST", "GET", "PUT", "PATCH", "DELETE"];
 
@@ -80,6 +95,12 @@ export default function ToolsPage() {
   const [testing, setTesting] = useState<ToolRow | null>(null);
   const [deleting, setDeleting] = useState<ToolRow | null>(null);
 
+  // The capability tools (lead capture, appointments, handoff) are per-agent,
+  // so the page needs to know which agent it is configuring.
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentId, setAgentId] = useState<string>("");
+  const [agentsLoading, setAgentsLoading] = useState(true);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -96,6 +117,34 @@ export default function ToolsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    listAgents()
+      .then((list) => {
+        const real = (list || []).filter((a) => !a.id.startsWith("demo-"));
+        setAgents(real);
+        let remembered = "";
+        try {
+          remembered = localStorage.getItem(AGENT_KEY) || "";
+        } catch {
+          /* storage unavailable */
+        }
+        setAgentId(
+          real.some((a) => a.id === remembered) ? remembered : real[0]?.id || "",
+        );
+      })
+      .catch(() => setAgents([]))
+      .finally(() => setAgentsLoading(false));
+  }, []);
+
+  const selectAgent = (id: string) => {
+    setAgentId(id);
+    try {
+      localStorage.setItem(AGENT_KEY, id);
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   const filtered = tools.filter(
     (t) =>
@@ -125,8 +174,8 @@ export default function ToolsPage() {
         </div>
       </div>
       <p className="text-[13px] text-[var(--slate)] mb-6!">
-        Actions your agents can take mid-conversation. {customCount} custom{" "}
-        {customCount === 1 ? "tool" : "tools"} · 2 built in.
+        Everything your agents can actually do mid-conversation — capture a
+        lead, book a meeting, hand over to a person, or call your own webhook.
       </p>
 
       {showInfo && (
@@ -152,6 +201,79 @@ export default function ToolsPage() {
           </button>
         </div>
       )}
+
+      {/* ── Per-agent capabilities ─────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3! mb-4!">
+        <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2!">
+          <Sparkles size={15} className="text-[var(--violet-700)]" /> Agent
+          capabilities
+        </h2>
+        {agents.length > 0 && (
+          <div className="ml-auto flex items-center gap-2!">
+            <span className="text-[12px] text-[var(--muted)]">Configuring</span>
+            <div className="relative">
+              <Bot
+                size={14}
+                className="absolute left-3! top-1/2 -translate-y-1/2 text-[var(--muted)] pointer-events-none"
+              />
+              <select
+                value={agentId}
+                onChange={(e) => selectAgent(e.target.value)}
+                className="fld appearance-none pl-9! pr-9! py-2! text-[13px] w-[240px]!"
+              >
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-3! top-1/2 -translate-y-1/2 text-[var(--muted)] pointer-events-none"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {agentsLoading ? (
+        <div className="grid place-items-center py-16! mb-8!">
+          <Spinner />
+        </div>
+      ) : !agentId ? (
+        <div className="bg-white border border-[var(--line)] rounded-2xl grid place-items-center text-center py-14! px-6! mb-10!">
+          <span className="w-12! h-12! rounded-2xl grid place-items-center bg-[var(--violet-050)] text-[var(--violet-700)] border border-[var(--violet-100)] mb-3!">
+            <Bot size={22} />
+          </span>
+          <p className="text-[15px] font-semibold text-[var(--ink)]">
+            No agents yet
+          </p>
+          <p className="text-[13px] text-[var(--slate)] mt-1! max-w-[380px]!">
+            Lead capture, appointments and human handoff are configured per
+            agent. Create one and they show up here.
+          </p>
+          <Link
+            href="/dashboard/agents?new=1"
+            className="btn-dark px-4! py-2.5! text-[13.5px] mt-5!"
+          >
+            <Plus size={16} /> New agent
+          </Link>
+        </div>
+      ) : (
+        <div className="mb-10!">
+          {/* Remount on agent change so every card refetches for that agent. */}
+          <CapabilitiesPanel key={agentId} agentId={agentId} />
+        </div>
+      )}
+
+      {/* ── Conversation tools ──────────────────────────────────────────── */}
+      <h2 className="text-[15px] font-semibold text-[var(--ink)] flex items-center gap-2! mb-4!">
+        <Blocks size={15} className="text-[var(--violet-700)]" /> Conversation
+        tools
+        <span className="text-[var(--muted)] font-normal">
+          ({customCount} custom · 2 built in)
+        </span>
+      </h2>
 
       {loadError && (
         <div className="flex items-center gap-2! text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4! py-3! mb-6!">
