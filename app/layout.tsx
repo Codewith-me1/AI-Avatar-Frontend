@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AVAT Avatar — Realtime AI Avatar Platform",
+  title: "avatarx — Realtime AI Avatar Platform",
   description:
     "Deploy lifelike AI avatars for real-time conversations, in any language.",
 };

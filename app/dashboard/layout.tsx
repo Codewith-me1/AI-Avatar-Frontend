@@ -149,7 +149,7 @@ export default function DashboardLayout({
               <Zap size={16} fill="currentColor" />
             </span>
             <span className="font-display font-bold text-[16px] tracking-tight text-[var(--ink)]">
-              AVAT<span className="font-medium text-[var(--slate)]"> Avatar</span>
+              avatarx
             </span>
           </Link>
           <div className="flex items-center justify-between gap-2! bg-white border border-[var(--line)] rounded-xl px-3! py-2! shadow-[var(--shadow-sm)]">

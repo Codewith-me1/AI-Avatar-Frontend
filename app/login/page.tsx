@@ -131,7 +131,7 @@ export default function LoginPage() {
           <span className="w-10! h-10! rounded-xl grid place-items-center bg-white/20 backdrop-blur">
             <Sparkles size={20} />
           </span>
-          <span className="font-display font-bold text-xl">AVAT Avatar</span>
+          <span className="font-display font-bold text-xl">avatarx</span>
         </Link>
 
         <div className="relative">
@@ -159,7 +159,7 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-white/60 text-[13px]">
-          © 2026 AVAT Avatar Inc.
+          © 2026 avatarx
         </p>
       </div>
 
@@ -183,7 +183,7 @@ export default function LoginPage() {
               <Sparkles size={18} />
             </span>
             <span className="font-display font-bold text-[17px] text-[var(--ink)]">
-              AVAT Avatar
+              avatarx
             </span>
           </Link>
 

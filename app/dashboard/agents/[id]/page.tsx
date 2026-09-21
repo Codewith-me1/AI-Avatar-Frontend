@@ -935,7 +935,7 @@ function VoiceSection({
                 <input
                   value={p.word}
                   onChange={(e) => setEntry(i, { word: e.target.value })}
-                  placeholder="AVAT"
+                  placeholder="avatarx"
                   className="fld px-3.5! py-2!"
                 />
                 <span className="text-[12px] text-[var(--muted)] shrink-0">
@@ -976,7 +976,7 @@ function EmbedSection({
 }) {
   const [copied, setCopied] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const code = `<!-- AVAT Avatar embeddable widget -->
+  const code = `<!-- avatarx embeddable widget -->
 <script src="${origin}/components/widget/widget.js" async></script>
 <script>
   window.VoiceAgentConfig = {
