@@ -8,7 +8,7 @@ Everything below is what is actually deployed, not a plan.
 - **Repo**: <https://github.com/Codewith-me1/AI-Avatar-Frontend> (`main`)
 - **App path**: `/home/aiavatar/frontend` (owned by `aiavatar`, the same user the API runs as)
 - **Service**: `avatar-frontend.service` → `next start -p 3000 -H 127.0.0.1`
-- **Deployed commit**: `5ecdb01`
+- **Deployed commit**: whatever `origin/main` points at — `avatar-frontend-update` syncs and rebuilds
 
 ---
 
@@ -63,7 +63,7 @@ postgres, redis, the backend's `.env`, and the existing nginx site.
 
 ---
 
-## 3. Remaining steps (need access I don't have)
+## 3. Domain, TLS, and the one open item
 
 ### 3a. DNS — **done**
 
@@ -75,7 +75,7 @@ Issued against the existing ACME account (no new registration e-mail needed,
 so the command took no `-m`):
 
 ```bash
-certbot --nginx -d avatarx.net -d www.avatarx.net --redirect         --agree-tos --non-interactive
+certbot --nginx -d avatarx.net -d www.avatarx.net --redirect --agree-tos --non-interactive
 ```
 
 - Certificate: `/etc/letsencrypt/live/avatarx.net/` covering `avatarx.net` and
@@ -132,9 +132,10 @@ cd /home/aiavatar/frontend && runuser -u aiavatar -- env HOME=/home/aiavatar npm
   systemctl restart avatar-frontend.service
 ```
 
-### Verifying without DNS
+### Verifying from the server
 
-Every check below passes on the server today:
+Useful when something looks wrong from outside and you need to know whether the
+app or the edge is at fault:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: avatarx.net' http://127.0.0.1/login
@@ -142,13 +143,12 @@ curl -s -H 'Host: avatarx.net' http://127.0.0.1/api/agents/templates | head -c 8
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: avatarx.net' http://127.0.0.1/api/tools
 ```
 
-Locally you can preview the real domain before DNS moves:
+From anywhere:
 
 ```bash
-curl --resolve avatarx.net:80:169.58.199.142 http://avatarx.net/login
+curl -sI https://avatarx.net/login | head -1
+curl -s https://avatarx.net/api/agents/templates | head -c 80
 ```
-
-or add `169.58.199.142 avatarx.net` to your hosts file.
 
 ---
 
