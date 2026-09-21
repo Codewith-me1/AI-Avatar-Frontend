@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Logo } from "@/components/brand/Logo";
 import {
   Home,
   BarChart3,
@@ -142,11 +143,8 @@ export default function DashboardLayout({
         {/* Brand + workspace switcher */}
         <div className="px-4! pt-5! pb-3!">
           <Link href="/" className="flex items-center gap-2.5! group mb-4! px-1!">
-            <span
-              className="w-8! h-8! rounded-lg grid place-items-center text-white shadow-sm transition-transform group-hover:scale-105"
-              style={{ background: "var(--grad)" }}
-            >
-              <Zap size={16} fill="currentColor" />
+            <span className="transition-transform group-hover:scale-105">
+              <Logo size={32} priority />
             </span>
             <span className="font-display font-bold text-[16px] tracking-tight text-[var(--ink)]">
               avatarx

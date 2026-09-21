@@ -31,6 +31,7 @@ import {
   MousePointer2,
 } from "lucide-react";
 import { GradientBlinds } from "@/components/magicui/GradientBlinds";
+import { Logo } from "@/components/brand/Logo";
 
 /* ═══════════════════════════════════════════════════════════════
    avatarx — landing page
@@ -178,7 +179,7 @@ const GlobalStyles = () => (
     .nav { position: absolute; top: 0; left: 0; right: 0; z-index: 50; }
     .nav-in { display:flex; align-items:center; justify-content:space-between; padding: 24px 10px; }
     .nav-logo { display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:1.05rem; color:var(--ink); text-decoration:none; letter-spacing:-0.02em; }
-    .nav-mark { width:34px; height:34px; border-radius:10px; background:var(--grad); display:grid; place-items:center; color:#fff; box-shadow:0 6px 16px rgba(124,58,237,.3); }
+    .nav-logo img, .foot .brand .logo img { display:block; }
     .nav-links { display:flex; gap:4px; }
     .nav-links a { color:var(--text); font-size:0.9rem; font-weight:500; text-decoration:none; padding:0.5rem 0.9rem; border-radius:999px; transition:.2s; }
     .nav-links a:hover { color:var(--ink); background: rgba(22,18,31,0.05); }
@@ -454,9 +455,7 @@ function Nav() {
       <div className="wrap">
         <div className="nav-in">
           <a href="#" className="nav-logo">
-            <span className="nav-mark">
-              <Sparkles size={18} />
-            </span>
+            <Logo size={34} priority />
             avatarx
           </a>
           <div className="nav-links">
@@ -1484,9 +1483,7 @@ function Footer() {
         <div className="foot-top">
           <div className="brand">
             <div className="logo">
-              <span className="nav-mark">
-                <Sparkles size={16} />
-              </span>
+              <Logo size={28} />
               avatarx
             </div>
             <p>

@@ -25,6 +25,7 @@ import {
   type OverviewData,
   type TimeseriesPoint,
 } from "@/lib/api/dashboard";
+import { Logo } from "@/components/brand/Logo";
 
 const GET_STARTED = [
   {
@@ -200,12 +201,7 @@ export default function DashboardHome() {
               </Link>
             </div>
             <div className="hidden md:grid place-items-center w-[220px]! h-[130px]! rounded-2xl bg-white/5 border border-white/10 shrink-0">
-              <span
-                className="w-14! h-14! rounded-2xl grid place-items-center text-white"
-                style={{ background: "var(--grad)" }}
-              >
-                <Bot size={26} />
-              </span>
+              <Logo size={56} />
             </div>
           </div>
         </div>

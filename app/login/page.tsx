@@ -4,20 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  Sparkles,
-  Mail,
-  Lock,
-  User,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  Globe,
-  Zap,
-  Info,
-} from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck, Globe, Zap, Info } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Logo } from "@/components/brand/Logo";
 import { getGoogleAuthUrl } from "@/lib/api/google";
 
 type Mode = "login" | "register";
@@ -128,9 +117,7 @@ export default function LoginPage() {
           }}
         />
         <Link href="/" className="relative flex items-center gap-2.5! w-fit!">
-          <span className="w-10! h-10! rounded-xl grid place-items-center bg-white/20 backdrop-blur">
-            <Sparkles size={20} />
-          </span>
+          <Logo size={26} plate priority />
           <span className="font-display font-bold text-xl">avatarx</span>
         </Link>
 
@@ -176,12 +163,7 @@ export default function LoginPage() {
             href="/"
             className="lg:hidden flex items-center gap-2.5! mb-8! w-fit!"
           >
-            <span
-              className="w-9! h-9! rounded-xl grid place-items-center text-white"
-              style={{ background: "var(--grad)" }}
-            >
-              <Sparkles size={18} />
-            </span>
+            <Logo size={34} />
             <span className="font-display font-bold text-[17px] text-[var(--ink)]">
               avatarx
             </span>

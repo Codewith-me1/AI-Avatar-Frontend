@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { Logo } from "@/components/brand/Logo";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: <LayoutDashboard size={18} strokeWidth={2} /> },
@@ -76,9 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <nav className="w-[260px]! shrink-0 bg-[var(--sidebar)] border-r border-[var(--line)] flex flex-col h-screen sticky top-0 z-20">
         <div className="h-[72px]! flex items-center px-6! border-b border-[var(--line)]">
           <div className="flex items-center gap-2.5!">
-            <span className="w-9! h-9! rounded-xl grid place-items-center bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
-              <Shield size={18} />
-            </span>
+            <Logo size={32} priority />
             <div className="leading-tight">
               <p className="font-display font-bold text-[15px] text-[var(--ink)]">
                 avatarx Admin
