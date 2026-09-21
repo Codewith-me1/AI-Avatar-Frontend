@@ -4,7 +4,7 @@ Live runbook for the Next.js console on the VPS that already runs the API.
 Everything below is what is actually deployed, not a plan.
 
 - **Server**: `169.58.199.142` (Ubuntu 24.04, 12 GB RAM, 193 GB disk)
-- **Domain**: `https://avatarx.net` (+ `www`)
+- **Domain**: <https://avatarx.net> (+ `www`) — live over HTTPS
 - **Repo**: <https://github.com/Codewith-me1/AI-Avatar-Frontend> (`main`)
 - **App path**: `/home/aiavatar/frontend` (owned by `aiavatar`, the same user the API runs as)
 - **Service**: `avatar-frontend.service` → `next start -p 3000 -H 127.0.0.1`
@@ -65,42 +65,28 @@ postgres, redis, the backend's `.env`, and the existing nginx site.
 
 ## 3. Remaining steps (need access I don't have)
 
-### 3a. Point DNS at the server — **required**
+### 3a. DNS — **done**
 
-`avatarx.net` currently resolves to `15.197.148.33` / `3.33.130.190` (registrar
-parking), not to the VPS. At the registrar, set:
+`avatarx.net` and `www.avatarx.net` both resolve to `169.58.199.142`.
 
-| Type | Name | Value | TTL |
-|---|---|---|---|
-| A | `@` | `169.58.199.142` | 300 |
-| A | `www` | `169.58.199.142` | 300 |
+### 3b. TLS — **done**
 
-Remove any conflicting A/AAAA/ALIAS records for those names. Check with:
+Issued against the existing ACME account (no new registration e-mail needed,
+so the command took no `-m`):
 
 ```bash
-dig +short avatarx.net    # expect 169.58.199.142
+certbot --nginx -d avatarx.net -d www.avatarx.net --redirect         --agree-tos --non-interactive
 ```
 
-### 3b. Issue the TLS certificate — after 3a resolves
+- Certificate: `/etc/letsencrypt/live/avatarx.net/` covering `avatarx.net` and
+  `www.avatarx.net`, issued by Let's Encrypt (`CN=YE1`), expires **2026-12-20**
+- Certbot added the `443` server block and the HTTP→HTTPS 301 to
+  `/etc/nginx/sites-available/avatarx`; the API's own site was not touched
+- `certbot.timer` is active, and `certbot renew --dry-run` succeeds for **both**
+  certificates (one attempt failed on a read timeout to the ACME *staging* API;
+  the retry was clean, so it was transient rather than configuration)
 
-```bash
-ssh root@169.58.199.142
-certbot --nginx -d avatarx.net -d www.avatarx.net --redirect \
-        --agree-tos -m you@yourdomain.com --no-eff-email
-nginx -t && systemctl reload nginx
-curl -sI https://avatarx.net/login | head -1
-```
-
-Certbot adds the `443` block and an HTTP→HTTPS redirect to
-`/etc/nginx/sites-available/avatarx`. Renewal is already automatic
-(`certbot.timer`) — the same timer that renews the API's certificate.
-
-Until the certificate exists, the site answers on plain HTTP only, and login
-will not persist across reloads (the API sets `Secure` cookies because
-`COOKIE_SECURE=1`; the `sessionStorage` fallback still carries the session
-within a tab).
-
-### 3c. Google sign-in redirect — needs a backend touch
+### 3c. Google sign-in redirect — the only item left, and it needs a backend touch
 
 The backend's `.env` has:
 
@@ -170,6 +156,11 @@ or add `169.58.199.142 avatarx.net` to your hosts file.
 
 | Check | Result |
 |---|---|
+| `https://avatarx.net/login`, `/dashboard/tools`, `https://www.avatarx.net/` | `200` |
+| `http://avatarx.net/login` | `301` → `https://avatarx.net/login` |
+| `https://avatarx.net/api/agents/templates`, `https://avatarx.net/health` | `200` — API on the same origin, over TLS |
+| TLS chain as served from the host | `issuer=Let's Encrypt CN=YE1`, SAN covers both names |
+| `certbot renew --dry-run` | succeeds for `avatarx.net` **and** `avat.gigatechservices.org` |
 | `/`, `/login`, `/dashboard`, `/dashboard/tools`, `/dashboard/avatars`, `/widget/test` | `200` |
 | `/components/widget/widget.js` (embed script) | `200`, 140 KB |
 | `/health`, `/api/agents/templates`, `/api/settings/google` | `200` via the same origin |
