@@ -3008,7 +3008,7 @@
           </div>
         </div>
 
-        <div class="va-powered" id="vaPowered">Powered by DIGITAL EMPLOYEES</div>
+        <div class="va-powered" id="vaPowered">Powered by AvatarX</div>
 
         <div class="va-bottom-bar" id="vaBottomBar">
           <div class="va-controls-dock">
