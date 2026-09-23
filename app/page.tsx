@@ -1491,7 +1491,15 @@ function Footer() {
       ],
     },
     { h: "Company", l: [{ t: "About", href: "#" }, { t: "Blog", href: "#" }, { t: "Careers", href: "#" }, { t: "Contact", href: "#" }] },
-    { h: "Legal", l: [{ t: "Privacy", href: "#" }, { t: "Terms", href: "#" }, { t: "Security", href: "#" }, { t: "GDPR", href: "#" }] },
+    {
+      h: "Legal",
+      l: [
+        { t: "Privacy", href: "/privacy" },
+        { t: "Terms", href: "/terms" },
+        { t: "Security", href: "/privacy#security" },
+        { t: "GDPR", href: "/privacy#gdpr" },
+      ],
+    },
   ];
   return (
     <footer className="foot">

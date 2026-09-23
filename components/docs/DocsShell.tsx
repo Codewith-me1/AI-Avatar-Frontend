@@ -19,6 +19,7 @@ import {
   Copy,
   Info,
   Lightbulb,
+  Scale,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
@@ -27,19 +28,55 @@ export interface DocSection {
   label: string;
 }
 
+export type DocsPage = "doc" | "api" | "privacy" | "terms";
+
+const PAGE_META: Record<
+  DocsPage,
+  { eyebrow: string; icon: React.ReactNode; otherHref: string; otherLabel: string }
+> = {
+  doc: {
+    eyebrow: "Documentation",
+    icon: <BookOpen size={11} />,
+    otherHref: "/api",
+    otherLabel: "API reference",
+  },
+  api: {
+    eyebrow: "API reference",
+    icon: <Code2 size={11} />,
+    otherHref: "/doc",
+    otherLabel: "Product guide",
+  },
+  privacy: {
+    eyebrow: "Legal",
+    icon: <Scale size={11} />,
+    otherHref: "/terms",
+    otherLabel: "Terms of Service",
+  },
+  terms: {
+    eyebrow: "Legal",
+    icon: <Scale size={11} />,
+    otherHref: "/privacy",
+    otherLabel: "Privacy Policy",
+  },
+};
+
 export function DocsShell({
   page,
   title,
   intro,
+  updated,
   sections,
   children,
 }: {
-  page: "doc" | "api";
+  page: DocsPage;
   title: string;
   intro: string;
+  /** e.g. "23 September 2026" — shown under the intro on legal pages. */
+  updated?: string;
   sections: DocSection[];
   children: React.ReactNode;
 }) {
+  const meta = PAGE_META[page];
   const [active, setActive] = useState(sections[0]?.id ?? "");
 
   useEffect(() => {
@@ -142,8 +179,8 @@ export function DocsShell({
         {/* ── Content ───────────────────────────────────────────── */}
         <main className="min-w-0">
           <span className="eyebrow mb-3! inline-flex">
-            {page === "doc" ? <BookOpen size={11} /> : <Code2 size={11} />}
-            {page === "doc" ? "Documentation" : "API reference"}
+            {meta.icon}
+            {meta.eyebrow}
           </span>
           <h1 className="font-display text-[34px] md:text-[40px] font-semibold tracking-tight text-[var(--ink)] leading-[1.08]">
             {title}
@@ -151,17 +188,27 @@ export function DocsShell({
           <p className="text-[15px] text-[var(--slate)] mt-3! max-w-[680px]! leading-relaxed">
             {intro}
           </p>
+          {updated && (
+            <p className="text-[12.5px] text-[var(--muted)] mt-3!">
+              Last updated {updated}
+            </p>
+          )}
 
           <div className="mt-10!">{children}</div>
 
           <div className="border-t border-[var(--line)] mt-16! pt-6! flex flex-wrap items-center gap-3! text-[13px] text-[var(--muted)]">
             <span>© 2026 avatarx</span>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">
+              Terms
+            </Link>
             <Link
-              href={page === "doc" ? "/api" : "/doc"}
+              href={meta.otherHref}
               className="ml-auto inline-flex items-center gap-1.5! font-semibold text-[var(--violet-700)] hover:text-[var(--violet-600)]"
             >
-              {page === "doc" ? "API reference" : "Product guide"}{" "}
-              <ArrowRight size={13} />
+              {meta.otherLabel} <ArrowRight size={13} />
             </Link>
           </div>
         </main>
