@@ -88,7 +88,10 @@ export default function DashboardHome() {
     (async () => {
       setLoading(true);
       try {
-        const [ov, ts] = await Promise.all([getOverview(), getTimeseries("day")]);
+        const [ov, ts] = await Promise.all([
+          getOverview(),
+          getTimeseries("day"),
+        ]);
         setOverview(ov);
         setPoints((ts.points || []).slice(-14));
       } catch {
@@ -186,7 +189,7 @@ export default function DashboardHome() {
               <span className="inline-flex items-center gap-1.5! text-[11px] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/20 px-2.5! py-1! rounded-full mb-3.5!">
                 <Sparkles size={11} /> New
               </span>
-              <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight leading-tight text-white">
+              <h2 className="text-[22px] md:text-[26px] text-white font-semibold tracking-tight leading-tight text-white">
                 Turn any page into an interactive experience
               </h2>
               <p className="text-[14px] text-white/70 mt-2.5! leading-relaxed">
@@ -240,7 +243,9 @@ export default function DashboardHome() {
             <div className="text-[24px] font-semibold text-[var(--ink)] font-display leading-none">
               {loading ? "—" : s.value}
             </div>
-            <div className="text-[11.5px] text-[var(--muted)] mt-1.5!">{s.sub}</div>
+            <div className="text-[11.5px] text-[var(--muted)] mt-1.5!">
+              {s.sub}
+            </div>
           </div>
         ))}
       </div>
@@ -271,7 +276,12 @@ export default function DashboardHome() {
                 <motion.div
                   initial={{ height: 0 }}
                   animate={{ height: `${(p.session_count / maxBar) * 100}%` }}
-                  transition={{ delay: i * 0.03, type: "spring", stiffness: 120, damping: 18 }}
+                  transition={{
+                    delay: i * 0.03,
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 18,
+                  }}
                   className="w-full! rounded-t-md opacity-85 group-hover:opacity-100 transition-opacity min-h-[3px]!"
                   style={{ background: "var(--grad)" }}
                 />

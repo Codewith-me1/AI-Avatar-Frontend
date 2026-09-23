@@ -448,7 +448,7 @@ function Nav() {
     { label: "How it works", href: "#how" },
     { label: "Integrations", href: "#integrations" },
     { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Docs", href: "/doc" },
   ];
   return (
     <nav className="nav">
@@ -1471,11 +1471,27 @@ function CTA() {
 
 /* ─────────────────────── FOOTER ─────────────────────── */
 function Footer() {
-  const cols = [
-    { h: "Product", l: ["Features", "Pricing", "Integrations", "Changelog"] },
-    { h: "Developers", l: ["Docs", "API reference", "SDKs", "Status"] },
-    { h: "Company", l: ["About", "Blog", "Careers", "Contact"] },
-    { h: "Legal", l: ["Privacy", "Terms", "Security", "GDPR"] },
+  const cols: { h: string; l: { t: string; href: string }[] }[] = [
+    {
+      h: "Product",
+      l: [
+        { t: "Features", href: "#features" },
+        { t: "Pricing", href: "#pricing" },
+        { t: "Integrations", href: "#integrations" },
+        { t: "Changelog", href: "#" },
+      ],
+    },
+    {
+      h: "Developers",
+      l: [
+        { t: "Docs", href: "/doc" },
+        { t: "API reference", href: "/api" },
+        { t: "Embed guide", href: "/doc#embed" },
+        { t: "Status", href: "#" },
+      ],
+    },
+    { h: "Company", l: [{ t: "About", href: "#" }, { t: "Blog", href: "#" }, { t: "Careers", href: "#" }, { t: "Contact", href: "#" }] },
+    { h: "Legal", l: [{ t: "Privacy", href: "#" }, { t: "Terms", href: "#" }, { t: "Security", href: "#" }, { t: "GDPR", href: "#" }] },
   ];
   return (
     <footer className="foot">
@@ -1507,8 +1523,8 @@ function Footer() {
               <h4>{c.h}</h4>
               <ul>
                 {c.l.map((x) => (
-                  <li key={x}>
-                    <a href="#">{x}</a>
+                  <li key={x.t}>
+                    <a href={x.href}>{x.t}</a>
                   </li>
                 ))}
               </ul>

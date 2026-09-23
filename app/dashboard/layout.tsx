@@ -29,9 +29,6 @@ import {
   type CreditBalance,
 } from "@/lib/api/dashboard";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://avat.gigatechservices.org";
-
 type NavLink = {
   href: string;
   label: string;
@@ -69,7 +66,8 @@ const NAV: { heading?: string; items: NavLink[] }[] = [
     heading: "Connect",
     items: [
       { href: "/dashboard/settings", label: "Apps", icon: <LayoutGrid size={18} strokeWidth={1.9} /> },
-      { href: `${API_BASE}/docs`, label: "API docs", icon: <Code2 size={18} strokeWidth={1.9} />, external: true },
+      { href: "/doc", label: "Documentation", icon: <BookOpen size={18} strokeWidth={1.9} /> },
+      { href: "/api", label: "API reference", icon: <Code2 size={18} strokeWidth={1.9} /> },
     ],
   },
 ];
