@@ -19,11 +19,19 @@ same host, so the browser never makes a cross-origin request:
 
 ```
 avatarx.net/            → 127.0.0.1:3000   (Next.js, this repo)
+avatarx.net/api         → 127.0.0.1:3000   (the /api reference PAGE, exact match)
+avatarx.net/api/        → 127.0.0.1:3000   (same page, exact match)
 avatarx.net/api/*       → 127.0.0.1:8000   (existing FastAPI, untouched)
 avatarx.net/ws/*        → 127.0.0.1:8000   (realtime gateway, WebSocket upgrade)
-avatarx.net/health      → 127.0.0.1:8000
-avatarx.net/docs,/openapi.json,/redoc → 127.0.0.1:8000
+avatarx.net/health, /openapi.json → 127.0.0.1:8000
 ```
+
+The two exact-match `= /api` locations exist because the documentation lives at
+`/api` while the API itself is everything below it. Exact matches outrank the
+`/api/` prefix in nginx, so only those two spellings are diverted and every
+real endpoint still reaches FastAPI. `/docs` and `/redoc` are no longer
+proxied: the backend runs with `DEBUG=False`, so its Swagger UI is disabled,
+and the app serves `/docs → /doc` instead.
 
 `.env.production` is therefore just:
 
