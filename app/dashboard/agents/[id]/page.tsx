@@ -977,13 +977,13 @@ function EmbedSection({
   const [copied, setCopied] = useState(false);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const code = `<!-- avatarx embeddable widget -->
-<script src="${origin}/components/widget/widget.js" async></script>
 <script>
   window.VoiceAgentConfig = {
     agentId: "${agentId}",
     apiUrl: "${origin}"
   };
-</script>`;
+</script>
+<script src="${origin}/components/widget/widget.js" async></script>`;
 
   return (
     <div>

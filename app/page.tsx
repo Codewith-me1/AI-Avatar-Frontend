@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { GradientBlinds } from "@/components/magicui/GradientBlinds";
 import { Logo } from "@/components/brand/Logo";
+import { SiteWidget } from "@/components/widget/SiteWidget";
 
 /* ═══════════════════════════════════════════════════════════════
    avatarx — landing page
@@ -41,6 +42,11 @@ import { Logo } from "@/components/brand/Logo";
    terminal panels stay dark on purpose, exactly as they are in the
    dashboard. Self-contained (scoped CSS + lucide icons only).
 ════════════════════════════════════════════════════════════════ */
+
+/** The agent this site talks to. Override per environment if needed. */
+const SITE_AGENT_ID =
+  process.env.NEXT_PUBLIC_SITE_AGENT_ID ??
+  "bd3ef371-9b08-486e-b51a-91c813e76cea";
 
 const GlobalStyles = () => (
   <style>{`
@@ -1580,6 +1586,9 @@ export default function LandingPage() {
         <Footer />
       </div>
       <div className="grain" />
+      {/* Our own agent, through the same widget customers embed. It is
+          injected into <body>, so it sits last on the page. */}
+      <SiteWidget agentId={SITE_AGENT_ID} />
     </div>
   );
 }

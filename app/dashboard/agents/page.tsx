@@ -667,13 +667,13 @@ function CreateWizard({
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const embedCode = `<!-- avatarx embeddable widget -->
-<script src="${origin}/components/widget/widget.js" async></script>
 <script>
   window.VoiceAgentConfig = {
     agentId: "${createdId}",
     apiUrl: "${origin}"
   };
-</script>`;
+</script>
+<script src="${origin}/components/widget/widget.js" async></script>`;
 
   return createPortal(
     <motion.div
